@@ -3,10 +3,38 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
-import { Leaf, RefreshCcw, Activity, Globe, Database, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Leaf, RefreshCcw, Activity, Globe, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // ============================================================
-// Sparkline — mini gráfico SVG puro, sem biblioteca
+// RelativeTime — atualiza sozinho a cada segundo
+// ============================================================
+function RelativeTime({ timestamp, prefix = "updated" }) {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    if (!timestamp) return;
+    const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+
+  if (!timestamp) return null;
+
+  const relative = formatDistanceToNowStrict(timestamp, {
+    locale: ptBR,
+    addSuffix: false,
+  });
+
+  return (
+    <span className="text-zinc-500 font-mono">
+      {prefix} {relative} atrás
+    </span>
+  );
+}
+
+// ============================================================
+// Sparkline — mini gráfico SVG puro
 // ============================================================
 function Sparkline({ data, color = '#00d68f', height = 32 }) {
   if (!data || data.length < 2) {
@@ -18,7 +46,7 @@ function Sparkline({ data, color = '#00d68f', height = 32 }) {
 
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const range = max - min || 1; // evita divisão por zero se todos os valores forem iguais
+  const range = max - min || 1;
 
   const width = 200;
   const padding = 2;
@@ -30,7 +58,6 @@ function Sparkline({ data, color = '#00d68f', height = 32 }) {
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   }).join(' ');
 
-  // gradient para a área sob a linha
   const gradientId = `spark-${color.replace('#', '')}`;
 
   return (
@@ -58,7 +85,7 @@ function Sparkline({ data, color = '#00d68f', height = 32 }) {
 }
 
 // ============================================================
-// TickerCard — agora com sparkline no rodapé
+// TickerCard — sem mudanças
 // ============================================================
 function TickerCard({ symbol, currentValue, previousValue, history, identityColor, icon: Icon, unit = "BRL · saca 60kg" }) {
   const hasData = currentValue != null;
@@ -130,44 +157,7 @@ function TickerCard({ symbol, currentValue, previousValue, history, identityColo
 
       <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-mono mb-3">{unit}</div>
 
-      {/* Sparkline */}
       <Sparkline data={history} color={sparkColor} height={32} />
-    </div>
-  );
-}
-
-// ============================================================
-// TechPanel — sem alteração
-// ============================================================
-function TechPanel({ error }) {
-  return (
-    <div className="flex flex-wrap items-center gap-4 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3 shadow-xl">
-      <div className="flex items-center gap-3 pr-4 border-r border-white/5">
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-          <Database size={12} className="text-emerald-500/70" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Source</span>
-          <span className="text-[10px] font-bold font-mono text-zinc-300">SUPABASE</span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 pr-4 border-r border-white/5">
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-          <Activity size={12} className="text-emerald-500/70" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Stream</span>
-          <span className="text-[10px] font-bold font-mono text-emerald-500/80">LIVE</span>
-        </div>
-      </div>
-
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 ${error ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
-        <div className={`w-1.5 h-1.5 rounded-full ${error ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-        <span className={`text-[9px] font-black font-mono tracking-tighter ${error ? 'text-red-500' : 'text-emerald-500'}`}>
-          {error ? 'DEGRADED' : 'SYSTEM_STABLE'}
-        </span>
-      </div>
     </div>
   );
 }
@@ -180,6 +170,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [pulse, setPulse] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -197,6 +188,7 @@ export default function App() {
           return acc;
         }, {});
         setData(Object.values(grouped).reverse().slice(-15));
+        setLastUpdate(new Date());
         setError(false);
       }
       setTimeout(() => setPulse(false), 800);
@@ -216,7 +208,6 @@ export default function App() {
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
 
-  // Histórico por commodity para o sparkline
   const sojaHistory = data.map(d => d.SOJA != null ? Number(d.SOJA) : null);
   const milhoHistory = data.map(d => d.MILHO != null ? Number(d.MILHO) : null);
 
@@ -237,50 +228,70 @@ export default function App() {
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <header className="flex flex-wrap justify-between items-center bg-zinc-900/20 backdrop-blur-md border border-white/5 rounded-[32px] p-4 mb-10 shadow-2xl">
-          <div className="flex items-center gap-4 px-2">
-            <div className="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_8px_20px_#10b98140]">
-              <Leaf className="text-white" size={22} />
+
+        {/* Header compacto - 1 linha */}
+        <header className="flex flex-wrap justify-between items-center gap-4 bg-zinc-900/20 backdrop-blur-md border border-white/5 rounded-2xl px-5 py-3 mb-8 shadow-2xl">
+          {/* Esquerda: Logo + nome + versão */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-[0_4px_12px_#10b98140]">
+              <Leaf className="text-white" size={18} />
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tighter text-white">
-                AGRO<span className="text-emerald-500">DATA</span>
-              </h1>
-              <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.3em]">Market Intelligence</span>
-            </div>
+            <h1 className="text-base font-black tracking-tighter text-white">
+              AGRO<span className="text-emerald-500">DATA</span>
+            </h1>
+            <span className="text-[9px] text-zinc-500 font-bold font-mono px-2 py-0.5 border border-white/5 rounded">
+              v2.3
+            </span>
           </div>
 
+          {/* Centro: status microtexto */}
+          <div className="flex items-center gap-3 text-[10px] font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className={`relative flex h-2 w-2`}>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${error ? 'bg-red-500' : 'bg-emerald-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${error ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+              </span>
+              <span className={`font-bold tracking-wider ${error ? 'text-red-500' : 'text-emerald-500'}`}>
+                {error ? 'DEGRADED' : 'LIVE'}
+              </span>
+            </span>
+            <span className="text-zinc-700">·</span>
+            <span className="text-zinc-500">supabase_db_01</span>
+            <span className="text-zinc-700">·</span>
+            <RelativeTime timestamp={lastUpdate} />
+          </div>
+
+          {/* Direita: botão reload icon-only */}
           <button
             onClick={fetchData}
-            className="flex items-center gap-3 px-6 py-3 bg-zinc-800 border border-white/5 rounded-2xl hover:bg-zinc-700 transition-all active:scale-95 group shadow-lg"
+            aria-label="Recarregar dados"
+            className="p-2.5 bg-zinc-800/60 border border-white/5 rounded-xl hover:bg-zinc-700 transition-all active:scale-95 shadow-lg"
           >
-            <RefreshCcw size={16} className={`text-emerald-500 ${pulse ? 'animate-spin' : ''}`} />
-            <span className="text-xs font-bold text-zinc-300 font-mono">RELOAD</span>
+            <RefreshCcw size={14} className={`text-emerald-500 ${pulse ? 'animate-spin' : ''}`} />
           </button>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-6 mb-10">
-          <div className="flex flex-col sm:flex-row gap-6 flex-1">
-            <TickerCard
-              symbol="SOJA"
-              currentValue={last?.SOJA != null ? Number(last.SOJA) : null}
-              previousValue={prev?.SOJA != null ? Number(prev.SOJA) : null}
-              history={sojaHistory}
-              identityColor="#10b981"
-              icon={Activity}
-            />
-            <TickerCard
-              symbol="MILHO"
-              currentValue={last?.MILHO != null ? Number(last.MILHO) : null}
-              previousValue={prev?.MILHO != null ? Number(prev.MILHO) : null}
-              history={milhoHistory}
-              identityColor="#f59e0b"
-              icon={Globe}
-            />
-          </div>
-          <TechPanel error={error} />
+        {/* Cards de commodity - agora ocupam linha inteira */}
+        <div className="flex flex-col sm:flex-row gap-6 mb-8">
+          <TickerCard
+            symbol="SOJA"
+            currentValue={last?.SOJA != null ? Number(last.SOJA) : null}
+            previousValue={prev?.SOJA != null ? Number(prev.SOJA) : null}
+            history={sojaHistory}
+            identityColor="#10b981"
+            icon={Activity}
+          />
+          <TickerCard
+            symbol="MILHO"
+            currentValue={last?.MILHO != null ? Number(last.MILHO) : null}
+            previousValue={prev?.MILHO != null ? Number(prev.MILHO) : null}
+            history={milhoHistory}
+            identityColor="#f59e0b"
+            icon={Globe}
+          />
         </div>
 
+        {/* Gráfico principal */}
         <div className="relative bg-zinc-900/30 backdrop-blur-2xl border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden min-h-[550px]">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
