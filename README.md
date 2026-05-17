@@ -25,21 +25,21 @@
 
 O sistema é composto por **três módulos independentes** que conversam via banco de dados e API REST:
 
-```
-┌────────────────────┐      ┌────────────────────┐      ┌────────────────────┐
-│   Data Engine      │      │       API          │      │     Frontend       │
-│   (Python)         │      │      (.NET 10)     │      │  (React + Vite)    │
-│                    │      │                    │      │                    │
-│  Coleta + ETL      │─────▶│  Clean Architecture│─────▶│  Dashboard live    │
-│  Schedule via      │      │  REST endpoints    │      │  Polling 15s       │
-│  GitHub Actions    │      │                    │      │                    │
-└─────────┬──────────┘      └─────────▲──────────┘      └────────────────────┘
-│                           │
-▼                           │
-┌────────────────────────────────────┴───────┐
-│     PostgreSQL (Supabase)                  │
-│     Tabela: commodity_prices                │
-└────────────────────────────────────────────┘
+```text
++----------------------+     +----------------------+     +----------------------+
+|     Data Engine      |     |        API           |     |      Frontend        |
+|     (Python)         |     |     (.NET 10)        |     |   (React + Vite)     |
+|                      |     |                      |     |                      |
+|  Coleta + ETL        |---->|  Clean Architecture  |<----|  Dashboard live      |
+|  Schedule via        |     |  REST endpoints      |     |  Polling 15s         |
+|  GitHub Actions      |     |                      |     |                      |
++----------+-----------+     +----------+-----------+     +----------------------+
+           |                            ^
+           v                            |
++----------+----------------------------+----------+
+|         PostgreSQL (Supabase)                    |
+|         Tabela: commodity_prices                 |
++--------------------------------------------------+
 ```
 
 ### Camadas (Backend .NET)
