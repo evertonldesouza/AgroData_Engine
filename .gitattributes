@@ -1,0 +1,40 @@
+# Normalize line endings: LF in repo, conversion handled by Git
+* text=auto eol=lf
+
+# Source code
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.py   text eol=lf
+*.cs   text eol=lf
+*.csproj text eol=lf
+*.slnx text eol=lf
+*.config text eol=lf
+
+# Shell scripts must be LF (Linux/CI)
+*.sh   text eol=lf
+
+# Windows scripts must be CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary files (no conversion, no diff)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.docx binary
+*.xlsx binary
+*.zip  binary
+
+# SVG é texto
+*.svg  text eol=lf

@@ -21,3 +21,15 @@ dist/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+.venv/
+venv/
