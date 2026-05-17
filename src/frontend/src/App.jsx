@@ -6,9 +6,61 @@ import {
 import { Leaf, RefreshCcw, Activity, Globe, Database, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // ============================================================
-// TickerCard — com variação dinâmica (verde/vermelho + % + absoluta)
+// Sparkline — mini gráfico SVG puro, sem biblioteca
 // ============================================================
-function TickerCard({ symbol, currentValue, previousValue, identityColor, icon: Icon, unit = "BRL · saca 60kg" }) {
+function Sparkline({ data, color = '#00d68f', height = 32 }) {
+  if (!data || data.length < 2) {
+    return <div style={{ height }} className="opacity-20" />;
+  }
+
+  const values = data.filter(v => v != null && !isNaN(v));
+  if (values.length < 2) return <div style={{ height }} className="opacity-20" />;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1; // evita divisão por zero se todos os valores forem iguais
+
+  const width = 200;
+  const padding = 2;
+  const innerHeight = height - padding * 2;
+
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = padding + innerHeight - ((v - min) / range) * innerHeight;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ');
+
+  // gradient para a área sob a linha
+  const gradientId = `spark-${color.replace('#', '')}`;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full" style={{ height }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`0,${height} ${points} ${width},${height}`}
+        fill={`url(#${gradientId})`}
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ============================================================
+// TickerCard — agora com sparkline no rodapé
+// ============================================================
+function TickerCard({ symbol, currentValue, previousValue, history, identityColor, icon: Icon, unit = "BRL · saca 60kg" }) {
   const hasData = currentValue != null;
   const hasComparison = hasData && previousValue != null;
 
@@ -31,6 +83,12 @@ function TickerCard({ symbol, currentValue, previousValue, identityColor, icon: 
     up: 'bg-[#00d68f]/10',
     down: 'bg-[#ff5a5a]/10',
     neutral: 'bg-white/5',
+  }[direction];
+
+  const sparkColor = {
+    up: '#00d68f',
+    down: '#ff5a5a',
+    neutral: '#71717a',
   }[direction];
 
   const TrendIcon = {
@@ -70,13 +128,16 @@ function TickerCard({ symbol, currentValue, previousValue, identityColor, icon: 
         )}
       </div>
 
-      <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-mono">{unit}</div>
+      <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-mono mb-3">{unit}</div>
+
+      {/* Sparkline */}
+      <Sparkline data={history} color={sparkColor} height={32} />
     </div>
   );
 }
 
 // ============================================================
-// TechPanel — sem alteração nesse commit
+// TechPanel — sem alteração
 // ============================================================
 function TechPanel({ error }) {
   return (
@@ -155,6 +216,10 @@ export default function App() {
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
 
+  // Histórico por commodity para o sparkline
+  const sojaHistory = data.map(d => d.SOJA != null ? Number(d.SOJA) : null);
+  const milhoHistory = data.map(d => d.MILHO != null ? Number(d.MILHO) : null);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -200,6 +265,7 @@ export default function App() {
               symbol="SOJA"
               currentValue={last?.SOJA != null ? Number(last.SOJA) : null}
               previousValue={prev?.SOJA != null ? Number(prev.SOJA) : null}
+              history={sojaHistory}
               identityColor="#10b981"
               icon={Activity}
             />
@@ -207,6 +273,7 @@ export default function App() {
               symbol="MILHO"
               currentValue={last?.MILHO != null ? Number(last.MILHO) : null}
               previousValue={prev?.MILHO != null ? Number(prev.MILHO) : null}
+              history={milhoHistory}
               identityColor="#f59e0b"
               icon={Globe}
             />
