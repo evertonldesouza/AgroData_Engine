@@ -3,81 +3,178 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
-import { Leaf, RefreshCcw, TrendingUp, Activity, Globe, Database } from 'lucide-react';
+import { Leaf, RefreshCcw, Activity, Globe, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Widget de métrica com design "Floating Glass"
-function TickerCard({ symbol, value, color, pulse, icon: Icon }) {
+// ============================================================
+// RelativeTime — atualiza sozinho a cada segundo
+// ============================================================
+function RelativeTime({ timestamp, prefix = "updated" }) {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    if (!timestamp) return;
+    const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+
+  if (!timestamp) return null;
+
+  const relative = formatDistanceToNowStrict(timestamp, {
+    locale: ptBR,
+    addSuffix: false,
+  });
+
   return (
-    <div className="relative flex items-center gap-5 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-5 flex-1 min-w-[260px] shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-zinc-800/40 hover:shadow-emerald-500/5 group">
-      <div className="p-4 bg-zinc-800/60 rounded-2xl border border-white/5 group-hover:scale-110 transition-transform duration-500">
-        <Icon size={22} style={{ color }} />
-      </div>
-
-      <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{symbol}</span>
-          {pulse && (
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-              )}
-            </div>
-        <span className="text-2xl font-bold tracking-tight text-white font-mono mt-0.5">
-          {value ?? <span className="text-zinc-800">---</span>}
-        </span>
-      </div>
-
-      <div className="ml-auto p-2 bg-emerald-500/5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-         <TrendingUp size={16} className="text-emerald-500" />
-          </div>
-      </div>
+    <span className="text-zinc-500 font-mono">
+      {prefix} {relative} atrás
+    </span>
   );
 }
 
-// Painel Técnico estilo "Capsule"
-function TechPanel({ error }) {
+// ============================================================
+// Sparkline — mini gráfico SVG puro
+// ============================================================
+function Sparkline({ data, color = '#00d68f', height = 32 }) {
+  if (!data || data.length < 2) {
+    return <div style={{ height }} className="opacity-20" />;
+  }
+
+  const values = data.filter(v => v != null && !isNaN(v));
+  if (values.length < 2) return <div style={{ height }} className="opacity-20" />;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  const width = 200;
+  const padding = 2;
+  const innerHeight = height - padding * 2;
+
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = padding + innerHeight - ((v - min) / range) * innerHeight;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ');
+
+  const gradientId = `spark-${color.replace('#', '')}`;
+
   return (
-    <div className="flex flex-wrap items-center gap-4 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl px-6 py-3 shadow-xl">
-      <div className="flex items-center gap-3 pr-4 border-r border-white/5">
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-          <Database size={12} className="text-emerald-500/70" />
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full" style={{ height }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`0,${height} ${points} ${width},${height}`}
+        fill={`url(#${gradientId})`}
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ============================================================
+// TickerCard — sem mudanças
+// ============================================================
+function TickerCard({ symbol, currentValue, previousValue, history, identityColor, icon: Icon, unit = "BRL · saca 60kg" }) {
+  const hasData = currentValue != null;
+  const hasComparison = hasData && previousValue != null;
+
+  const delta = hasComparison ? currentValue - previousValue : 0;
+  const deltaPct = hasComparison && previousValue !== 0
+    ? (delta / previousValue) * 100
+    : 0;
+
+  const direction = hasComparison
+    ? (delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral')
+    : 'neutral';
+
+  const trendColor = {
+    up: 'text-[#00d68f]',
+    down: 'text-[#ff5a5a]',
+    neutral: 'text-zinc-500',
+  }[direction];
+
+  const trendBg = {
+    up: 'bg-[#00d68f]/10',
+    down: 'bg-[#ff5a5a]/10',
+    neutral: 'bg-white/5',
+  }[direction];
+
+  const sparkColor = {
+    up: '#00d68f',
+    down: '#ff5a5a',
+    neutral: '#71717a',
+  }[direction];
+
+  const TrendIcon = {
+    up: TrendingUp,
+    down: TrendingDown,
+    neutral: Minus,
+  }[direction];
+
+  return (
+    <div className="bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex-1 min-w-[260px] shadow-xl transition-all duration-300 hover:bg-zinc-800/40">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-zinc-800/60 rounded-xl border border-white/5">
+            <Icon size={16} style={{ color: identityColor }} />
+          </div>
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{symbol}</span>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Source</span>
-          <span className="text-[10px] font-bold font-mono text-zinc-300">SUPABASE</span>
-        </div>
+
+        {hasComparison && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${trendBg}`}>
+            <TrendIcon size={11} className={trendColor} strokeWidth={2.5} />
+            <span className={`text-[10px] font-bold font-mono tabular-nums ${trendColor}`}>
+              {Math.abs(deltaPct).toFixed(2)}%
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-3 pr-4 border-r border-white/5">
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-          <Activity size={12} className="text-emerald-500/70" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Stream</span>
-          <span className="text-[10px] font-bold font-mono text-emerald-500/80">LIVE</span>
-        </div>
-      </div>
-
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 ${error ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
-        <div className={`w-1.5 h-1.5 rounded-full ${error ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-        <span className={`text-[9px] font-black font-mono tracking-tighter ${error ? 'text-red-500' : 'text-emerald-500'}`}>
-          {error ? 'DEGRADED' : 'SYSTEM_STABLE'}
+      <div className="flex items-baseline gap-3 mb-1">
+        <span className="text-3xl font-bold tracking-tight text-white font-mono tabular-nums">
+          {hasData ? `R$ ${currentValue.toFixed(2)}` : <span className="text-zinc-800">---</span>}
         </span>
+        {hasComparison && (
+          <span className={`text-xs font-mono tabular-nums ${trendColor}`}>
+            {delta > 0 ? '+' : delta < 0 ? '−' : ''}{Math.abs(delta).toFixed(2)}
+          </span>
+        )}
       </div>
+
+      <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-mono mb-3">{unit}</div>
+
+      <Sparkline data={history} color={sparkColor} height={32} />
     </div>
   );
 }
 
+// ============================================================
+// App
+// ============================================================
 export default function App() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [pulse, setPulse] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchData = async () => {
     try {
-        setPulse(true);
+      setPulse(true);
       const baseUrl = import.meta.env.VITE_API_URL || 'https://agro-data-engine.onrender.com';
       const res = await fetch(`${baseUrl}/api/Commodities`);
       if (!res.ok) throw new Error('Offline');
@@ -91,6 +188,7 @@ export default function App() {
           return acc;
         }, {});
         setData(Object.values(grouped).reverse().slice(-15));
+        setLastUpdate(new Date());
         setError(false);
       }
       setTimeout(() => setPulse(false), 800);
@@ -108,6 +206,10 @@ export default function App() {
   }, []);
 
   const last = data[data.length - 1];
+  const prev = data[data.length - 2];
+
+  const sojaHistory = data.map(d => d.SOJA != null ? Number(d.SOJA) : null);
+  const milhoHistory = data.map(d => d.MILHO != null ? Number(d.MILHO) : null);
 
   if (loading) {
     return (
@@ -122,57 +224,74 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans p-4 md:p-8">
-      {/* Background Decorativo Suave */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_#10b98108_0%,_transparent_40%)] pointer-events-none" />
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto">
 
-        {/* Header Superior Estilo Floating Bar */}
-        <header className="flex flex-wrap justify-between items-center bg-zinc-900/20 backdrop-blur-md border border-white/5 rounded-[32px] p-4 mb-10 shadow-2xl">
-          <div className="flex items-center gap-4 px-2">
-            <div className="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_8px_20px_#10b98140]">
-              <Leaf className="text-white" size={22} />
+        {/* Header compacto - 1 linha */}
+        <header className="flex flex-wrap justify-between items-center gap-4 bg-zinc-900/20 backdrop-blur-md border border-white/5 rounded-2xl px-5 py-3 mb-8 shadow-2xl">
+          {/* Esquerda: Logo + nome + versão */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-[0_4px_12px_#10b98140]">
+              <Leaf className="text-white" size={18} />
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tighter text-white">
-                AGRO<span className="text-emerald-500">DATA</span>
-              </h1>
-              <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.3em]">Market Intelligence</span>
-            </div>
+            <h1 className="text-base font-black tracking-tighter text-white">
+              AGRO<span className="text-emerald-500">DATA</span>
+            </h1>
+            <span className="text-[9px] text-zinc-500 font-bold font-mono px-2 py-0.5 border border-white/5 rounded">
+              v2.3
+            </span>
           </div>
 
+          {/* Centro: status microtexto */}
+          <div className="flex items-center gap-3 text-[10px] font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className={`relative flex h-2 w-2`}>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${error ? 'bg-red-500' : 'bg-emerald-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${error ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+              </span>
+              <span className={`font-bold tracking-wider ${error ? 'text-red-500' : 'text-emerald-500'}`}>
+                {error ? 'DEGRADED' : 'LIVE'}
+              </span>
+            </span>
+            <span className="text-zinc-700">·</span>
+            <span className="text-zinc-500">supabase_db_01</span>
+            <span className="text-zinc-700">·</span>
+            <RelativeTime timestamp={lastUpdate} />
+          </div>
+
+          {/* Direita: botão reload icon-only */}
           <button
             onClick={fetchData}
-            className="flex items-center gap-3 px-6 py-3 bg-zinc-800 border border-white/5 rounded-2xl hover:bg-zinc-700 transition-all active:scale-95 group shadow-lg"
+            aria-label="Recarregar dados"
+            className="p-2.5 bg-zinc-800/60 border border-white/5 rounded-xl hover:bg-zinc-700 transition-all active:scale-95 shadow-lg"
           >
-            <RefreshCcw size={16} className={`text-emerald-500 ${pulse ? 'animate-spin' : ''}`} />
-            <span className="text-xs font-bold text-zinc-300 font-mono">RELOAD</span>
+            <RefreshCcw size={14} className={`text-emerald-500 ${pulse ? 'animate-spin' : ''}`} />
           </button>
         </header>
 
-        {/* Widgets e Painel Técnico */}
-        <div className="flex flex-col lg:flex-row gap-6 mb-10">
-          <div className="flex flex-col sm:flex-row gap-6 flex-1">
-            <TickerCard
-              symbol="SOJA"
-              value={last?.SOJA ? `R$ ${Number(last.SOJA).toFixed(2)}` : null}
-              color="#10b981"
-              pulse={pulse}
-              icon={Activity}
-            />
-            <TickerCard
-              symbol="MILHO"
-              value={last?.MILHO ? `R$ ${Number(last.MILHO).toFixed(2)}` : null}
-              color="#f59e0b"
-              pulse={pulse}
-              icon={Globe}
-            />
-          </div>
-          <TechPanel error={error} />
+        {/* Cards de commodity - agora ocupam linha inteira */}
+        <div className="flex flex-col sm:flex-row gap-6 mb-8">
+          <TickerCard
+            symbol="SOJA"
+            currentValue={last?.SOJA != null ? Number(last.SOJA) : null}
+            previousValue={prev?.SOJA != null ? Number(prev.SOJA) : null}
+            history={sojaHistory}
+            identityColor="#10b981"
+            icon={Activity}
+          />
+          <TickerCard
+            symbol="MILHO"
+            currentValue={last?.MILHO != null ? Number(last.MILHO) : null}
+            previousValue={prev?.MILHO != null ? Number(prev.MILHO) : null}
+            history={milhoHistory}
+            identityColor="#f59e0b"
+            icon={Globe}
+          />
         </div>
 
-        {/* Gráfico Floating Card */}
+        {/* Gráfico principal */}
         <div className="relative bg-zinc-900/30 backdrop-blur-2xl border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden min-h-[550px]">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
@@ -232,4 +351,3 @@ export default function App() {
     </div>
   );
 }
-
