@@ -1,9 +1,9 @@
+import os
+import logging
+from dotenv import load_dotenv
 from database import SessionLocal
 from models import CommodityPrice
 from collector import CommodityCollector
-import os
-from dotenv import load_dotenv
-import logging
 
 # Configuração básica do logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -14,30 +14,35 @@ def run_pipeline():
     collector = CommodityCollector()
     db = SessionLocal()
     
-    print("🚀 Iniciando Pipeline de Dados para Supabase...")
+    logging.info("🚀 Iniciando Pipeline de Dados para Supabase...")
 
     try:
-        for symbol in ["SOJA", "MILHO"]:
+        symbols = ["SOJA", "MILHO"]
+        for symbol in symbols:
             raw_data = collector.fetch_mock_data(symbol)
             
-            new_price = CommodityPrice(
-                Symbol=raw_data['symbol'],
-                Price=raw_data['price'],
-                Timestamp=raw_data['timestamp'],
-                Source=raw_data['source']
-            )
-            
-            db.add(new_price)
-            print(f"💾 {symbol} preparado: R$ {raw_data['price']}")
+            if raw_data:
+                new_price = CommodityPrice(
+                    Symbol=raw_data['symbol'],
+                    Price=raw_data['price'],
+                    Timestamp=raw_data['timestamp'],
+                    Source=raw_data['source']
+                )
+                
+                db.add(new_price)
+                logging.info(f"💾 {symbol} preparado: R$ {raw_data['price']}")
+            else:
+                logging.warning(f"⚠️ Falha ao coletar dados para {symbol}. Pulando.")
 
         db.commit()
-        print("✅ Dados integrados com sucesso no Supabase!")
+        logging.info("✅ Dados integrados com sucesso no Supabase!")
 
     except Exception as e:
-        print(f"❌ Erro no pipeline: {e}")
+        logging.error(f"❌ Erro crítico no pipeline: {e}")
         db.rollback() 
     finally:
         db.close()
+        logging.info("Sessão do banco de dados fechada.")
 
 if __name__ == "__main__":
     run_pipeline()
