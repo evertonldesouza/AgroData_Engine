@@ -3,6 +3,10 @@ from models import CommodityPrice
 from collector import CommodityCollector
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configuração básica do logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv()
 
