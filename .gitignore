@@ -12,3 +12,5 @@ docker/postgres_data/
 
 # Documentacao privada
 docs/
+
+.env

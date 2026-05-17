@@ -1,6 +1,10 @@
 from database import SessionLocal
 from models import CommodityPrice
 from collector import CommodityCollector
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def run_pipeline():
     collector = CommodityCollector()

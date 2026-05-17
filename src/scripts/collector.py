@@ -3,25 +3,24 @@ import random
 from datetime import datetime
 import logging
 import os
+import os
+from dotenv import load_dotenv
 import time
 
-# Configuração básica do logger
+
+load_dotenv()
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class CommodityCollector:
     def __init__(self):
-        # Usar variável de ambiente para a URL da API, ou um valor padrão para desenvolvimento
         self.api_url = os.getenv("COMMODITY_API_URL", "https://api.exemplo.com/v1/commodities")
         logging.info(f"Coletor inicializado com API URL: {self.api_url}")
 
     def fetch_mock_data(self, symbol):
-        """
-        Coleta dados mockados para uma commodity.
-        Simula uma falha de rede ocasional para demonstrar tratamento de erro.
-        """
+        
         logging.info(f"Tentando coletar dados mockados para o símbolo: {symbol}")
         try:
-            # Simular uma falha de rede ocasional
             if random.random() < 0.1: # 10% de chance de falha
                 raise requests.exceptions.RequestException("Simulated network error")
 
@@ -49,16 +48,14 @@ if __name__ == "__main__":
     collector = CommodityCollector()
     print("\n--- Teste Isolado do Coletor ---")
     
-    # Testando com SOJA
     data_soja = collector.fetch_mock_data("SOJA")
     if data_soja:
         print(f"Dados SOJA: {data_soja}")
     else:
         print("Falha ao coletar dados para SOJA.")
     
-    time.sleep(1) # Pequena pausa para logs distintos
+    time.sleep(1) 
     
-    # Testando com MILHO
     data_milho = collector.fetch_mock_data("MILHO")
     if data_milho:
         print(f"Dados MILHO: {data_milho}")
