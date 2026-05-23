@@ -3,17 +3,8 @@ import { Leaf, RefreshCcw, Activity, Globe } from 'lucide-react';
 import TickerCard from './components/TickerCard';
 import MarketChart from './components/MarketChart';
 import RelativeTime from './components/RelativeTime';
-
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-      <div className="p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-2xl flex flex-col items-center">
-        <div className="w-16 h-16 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin mb-6" />
-        <span className="text-emerald-500 font-mono text-xs tracking-[0.4em] uppercase">Booting Engine...</span>
-      </div>
-    </div>
-  );
-}
+import SkeletonCard from './components/SkeletonCard';
+import SkeletonChart from './components/SkeletonChart';
 
 export default function App() {
   const [data, setData] = useState([]);
@@ -71,10 +62,32 @@ export default function App() {
   const sojaHistory = data.map(d => d.SOJA != null ? Number(d.SOJA) : null);
   const milhoHistory = data.map(d => d.MILHO != null ? Number(d.MILHO) : null);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans p-4 md:p-8">
+        <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_#10b98108_0%,_transparent_40%)] pointer-events-none" />
+        <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <header className="flex flex-wrap justify-between items-center gap-4 bg-zinc-900/20 backdrop-blur-md border border-white/5 rounded-2xl px-5 py-3 mb-8 shadow-2xl animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-zinc-800 rounded-xl" />
+              <div className="h-5 w-36 bg-zinc-800 rounded" />
+            </div>
+            <div className="h-4 w-48 bg-zinc-800/60 rounded" />
+            <div className="h-9 w-9 bg-zinc-800 rounded-xl" />
+          </header>
+          <div className="flex flex-col sm:flex-row gap-6 mb-8">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <SkeletonChart />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans p-4 md:p-8">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans p-4 md:p-8 animate-fade-in">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_#10b98108_0%,_transparent_40%)] pointer-events-none" />
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
 

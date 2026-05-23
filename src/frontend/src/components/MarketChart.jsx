@@ -3,6 +3,30 @@ import {
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 
+function formatPrice(value) {
+  if (value == null || isNaN(value)) return '—';
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl px-4 py-3">
+      <p className="text-[10px] text-zinc-500 font-mono mb-2">{label}</p>
+      {payload.map((entry) => (
+        <div key={entry.name} className="flex items-center gap-2 text-xs font-mono">
+          <span
+            className="w-2 h-2 rounded-full inline-block"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-zinc-400">{entry.name}:</span>
+          <span className="text-white font-bold tabular-nums">{formatPrice(entry.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MarketChart({ data }) {
   return (
     <div className="relative bg-zinc-900/30 backdrop-blur-2xl border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden min-h-[550px]">
@@ -41,16 +65,10 @@ export default function MarketChart({ data }) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
               <XAxis dataKey="time" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} tickMargin={15}/>
-              <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#18181b',
-                  border: '1px solid #ffffff10',
-                  borderRadius: '20px',
-                  boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
-                }}
-                itemStyle={{ color: '#fff' }}
+              <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} domain={['auto', 'auto']}
+                tickFormatter={(v) => formatPrice(v)}
               />
+              <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="SOJA" stroke="#10b981" strokeWidth={4} fill="url(#colorSoja)" animationDuration={2000} />
               <Area type="monotone" dataKey="MILHO" stroke="#f59e0b" strokeWidth={4} fill="url(#colorMilho)" animationDuration={2000} />
             </AreaChart>
