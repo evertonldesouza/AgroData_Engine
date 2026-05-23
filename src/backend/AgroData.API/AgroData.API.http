@@ -1,6 +1,0 @@
-@AgroData.API_HostAddress = http://localhost:5072
-
-GET {{AgroData.API_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
