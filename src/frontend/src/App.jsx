@@ -30,14 +30,22 @@ export default function App() {
       const json = await res.json();
 
       if (json?.length > 0) {
-        const grouped = json.reduce((acc, item) => {
-          const time = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          if (!acc[time]) acc[time] = { time };
-          acc[time][item.symbol] = item.price;
-          return acc;
-        }, {});
-        setData(Object.values(grouped).reverse().slice(-15));
-        setLastUpdate(new Date());
+        const now = new Date();
+        const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        const point = { time };
+        json.forEach(item => { point[item.symbol] = item.price; });
+
+        setData(prev => {
+          if (prev.length > 0 && prev[prev.length - 1].time === time) {
+            const updated = [...prev];
+            updated[updated.length - 1] = point;
+            return updated;
+          }
+          return [...prev, point].slice(-15);
+        });
+
+        setLastUpdate(now);
         setError(false);
         retryCount.current = 0;
       }
