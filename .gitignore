@@ -6,6 +6,9 @@
 *.cache
 .vs/
 
+# .NET user secrets / local overrides
+appsettings.*.local.json
+
 # Node / Vite
 node_modules/
 dist/

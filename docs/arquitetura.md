@@ -3,10 +3,10 @@
 ## Tech Stack
 - **Database:** PostgreSQL (Hospedado no Supabase).
 - **Data Engineering:** Python 3.x + SQLAlchemy (Pipeline Independente).
-- **Backend:** .NET 8 (C#) com Clean Architecture.
+- **Backend:** .NET 10 (C#) com Clean Architecture.
 - **Auth:** JWT (JSON Web Token) com RBAC (Role-Based Access Control).
 - **ORM:** Entity Framework Core (EF Core).
-- **Frontend:** React (Vite) + Tailwind CSS v4.
+- **Frontend:** React 19 (Vite) + Tailwind CSS v4.
 - **Infras:** Docker (Local) & Render (Cloud Deployment).
 
 ## Architecture Layers (C#)
