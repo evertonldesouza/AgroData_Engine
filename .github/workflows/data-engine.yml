@@ -25,5 +25,5 @@ jobs:
 
       - name: Run Pipeline
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_PYTHON }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python src/scripts/main_pipeline.py
