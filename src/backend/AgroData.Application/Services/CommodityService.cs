@@ -32,11 +32,27 @@ public class CommodityService : ICommodityService
 
                 return new CommodityResponse
                 {
+                    Id = latest.Id,
                     Symbol = latest.Symbol,
                     Price = latest.Price,
                     Timestamp = latest.Timestamp,
                     Trend = trend
                 };
             });
+    }
+
+    public async Task<CommodityResponse?> GetByIdAsync(int id)
+    {
+        var entity = await _repository.GetByIdAsync(id);
+        if (entity is null) return null;
+
+        return new CommodityResponse
+        {
+            Id = entity.Id,
+            Symbol = entity.Symbol,
+            Price = entity.Price,
+            Timestamp = entity.Timestamp,
+            Trend = "Estável"
+        };
     }
 }

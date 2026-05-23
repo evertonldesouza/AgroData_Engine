@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Symbol).IsRequired();
             entity.Property(e => e.Price).IsRequired();
+            entity.HasIndex(e => e.Symbol);
         });
     }
 }
