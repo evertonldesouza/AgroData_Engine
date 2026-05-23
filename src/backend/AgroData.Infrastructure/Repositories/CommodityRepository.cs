@@ -21,4 +21,9 @@ public class CommodityRepository : ICommodityRepository
             .Take(limit)
             .ToListAsync();
     }
+
+    public async Task<Commodity?> GetByIdAsync(int id)
+    {
+        return await _context.Commodities.FindAsync(id);
+    }
 }

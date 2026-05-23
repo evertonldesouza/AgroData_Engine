@@ -36,6 +36,8 @@ builder.Services.AddScoped<ICommodityService, CommodityService>();
 var app = builder.Build();
 
 
+app.UseExceptionHandler("/error");
+
 app.UseCors("Frontend");
 
 if (app.Environment.IsDevelopment())
@@ -47,7 +49,18 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", async (AppDbContext db) =>
+{
+    var canConnect = await db.Database.CanConnectAsync();
+    return canConnect
+        ? Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow })
+        : Results.StatusCode(503);
+});
+
+app.MapGet("/error", (HttpContext ctx) =>
+{
+    return Results.Problem(detail: "Ocorreu um erro interno.", statusCode: 500);
+});
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5072";
 app.Run($"http://0.0.0.0:{port}");
