@@ -47,5 +47,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5072";
 app.Run($"http://0.0.0.0:{port}");
