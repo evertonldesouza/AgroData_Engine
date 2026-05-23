@@ -119,7 +119,7 @@ cd AgroData_Engine
 Crie um arquivo `.env` na raiz com as variáveis de conexão (ou exporte no shell). As principais usadas pelo projeto:
 
 ```env
-DATABASE_URL_PYTHON=postgresql://usuario:senha@host:5432/agrodata
+DATABASE_URL=postgresql://usuario:senha@host:5432/agrodata
 ConnectionStrings__DefaultConnection=Host=host;Port=5432;Database=agrodata;Username=usuario;Password=senha
 ```
 
