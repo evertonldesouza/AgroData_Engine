@@ -14,9 +14,12 @@
 - Indicadores de variação (% e absoluta) com cores semânticas (verde/vermelho)
 - Sparkline custom em SVG puro — sem biblioteca pesada
 - Indicador de "última atualização" relativo, atualizando a cada segundo
+- Skeleton loading com fade-in na transição de dados
 - Pipeline de dados em Python alimentando PostgreSQL/Supabase
 - API REST .NET 10 com Clean Architecture (4 camadas)
 - Frontend React 19 + Tailwind CSS v4
+- Testes unitários com xUnit + Moq (6+ testes)
+- Health check com verificação de banco (`GET /health`)
 - Deploy contínuo via GitHub Actions
 
 ---
@@ -55,7 +58,7 @@ Segue os princípios de **Clean Architecture** — regras de negócio independen
 
 `src/scripts/` contém o motor de ingestão. Fluxo:
 
-1. **Coleta** preços de commodities (Soja, Milho) de fonte externa
+1. **Coleta** preços simulados de commodities (Soja, Milho)
 2. **Transformação** com pandas (limpeza, normalização)
 3. **Persistência** no PostgreSQL via SQLAlchemy
 4. **Agendamento** via GitHub Actions (cron) — executa em janela definida
@@ -67,8 +70,9 @@ Segue os princípios de **Clean Architecture** — regras de negócio independen
 - **`TickerCard`** — card de commodity com preço, variação dinâmica e sparkline
 - **`Sparkline`** — mini-gráfico SVG puro, sem dependências externas
 - **`RelativeTime`** — timestamp auto-atualizando via `date-fns`
+- **`SkeletonCard` / `SkeletonChart`** — loading skeleton enquanto aguarda dados
 - **Header compacto** — status do stream (LIVE/DEGRADED) inline
-- **Market Performance chart** — gráfico principal via Recharts
+- **Market Performance chart** — gráfico principal via Recharts com tooltip em formato `R$`
 
 ---
 
@@ -137,7 +141,8 @@ dotnet restore
 dotnet run
 ```
 
-A API sobe por padrão em `https://localhost:5001` com Swagger disponível em `/swagger`.
+A API sobe por padrão em `http://localhost:5072` com Swagger disponível em `/swagger`.  
+Health check em `GET /health`.
 
 ### 4. Frontend
 
@@ -149,7 +154,13 @@ npm run dev
 
 Acesse `http://localhost:5173/AgroData_Engine/`.
 
-### 5. Data Engine (opcional — popular dados)
+### 5. Testes (opcional)
+
+```bash
+dotnet test src/backend/AgroData.Tests
+```
+
+### 6. Data Engine (opcional — popular dados)
 
 ```bash
 cd src/scripts
@@ -166,6 +177,7 @@ python main_pipeline.py
 
 - [Arquitetura técnica](./docs/arquitetura.md) — stack e camadas Clean Architecture em detalhe
 - [Overview do projeto](./docs/overview.md) — objetivos, audiências-alvo e workflows
+- [Regras do projeto](./AGENTS.md) — convenções de código para agentes de IA
 
 ---
 
