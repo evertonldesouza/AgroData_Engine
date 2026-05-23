@@ -1,13 +1,13 @@
 # AgroData Engine - Project Context
 
 ## Overview
-O AgroData Engine é uma plataforma de inteligência de dados voltada ao setor agrícola. O sistema automatiza a coleta de preços de commodities (Soja e Milho), processa indicadores de tendência (médias móveis) e expõe esses dados através de uma API segura e um dashboard moderno.
+O AgroData Engine e uma plataforma de inteligencia de dados voltada ao setor agricola. O sistema automatiza a coleta de precos de commodities (Soja e Milho), processa indicadores de tendencia (medias moveis) e expoe esses dados atraves de uma API segura e um dashboard moderno.
 
 ## Objectives
-- Prover visualização clara de tendências para produtores rurais (Dashboard).
-- Oferecer análise técnica detalhada para analistas de mercado (Data Grid).
+- Prover visualizacao clara de tendencias para produtores rurais (Dashboard).
+- Oferecer analise tecnica detalhada para analistas de mercado (Data Grid).
 
 ## Core Workflows
-1. **Data Pipeline (Python):** Extração de dados via API/Web Scraping -> Limpeza -> Carga no PostgreSQL (Supabase).
-2. **Backend (.NET 8):** Camada de API protegida por JWT que consome o banco e fornece endpoints para o Frontend.
-3. **Frontend (React):** Interface SPA com suporte a temas (Dark/Light) e consumo da API.
+1. **Data Pipeline (Python):** Extracao de dados via API/Web Scraping -> Limpeza -> Carga no PostgreSQL (Supabase).
+2. **Backend (.NET 10):** Camada de API protegida por JWT que consome o banco e fornece endpoints para o Frontend.
+3. **Frontend (React 19):** Interface SPA com suporte a temas (Dark/Light) e consumo da API.
