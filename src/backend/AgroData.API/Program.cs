@@ -13,11 +13,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 
+var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "https://evertonldesouza.github.io";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -34,7 +36,7 @@ builder.Services.AddScoped<ICommodityService, CommodityService>();
 var app = builder.Build();
 
 
-app.UseCors("AllowAll");
+app.UseCors("Frontend");
 
 if (app.Environment.IsDevelopment())
 {
