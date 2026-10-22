@@ -9,8 +9,11 @@ namespace AgroData.Application.Common;
 /// </summary>
 public static class TrendCalculator
 {
-    /// <summary>Movement (in percent) below which a price is considered stable.</summary>
-    public const double FlatThresholdPercent = 0.001;
+    /// <summary>
+    /// Movement (in percent) below which a price is considered stable.
+    /// Matches <c>FLAT_THRESHOLD</c> in <c>agrodata/analytics.py</c> (0.1%).
+    /// </summary>
+    public const double FlatThresholdPercent = 0.1;
 
     /// <summary>Default window used by the moving average.</summary>
     public const int DefaultWindow = 7;
