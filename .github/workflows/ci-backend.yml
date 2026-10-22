@@ -61,7 +61,19 @@ jobs:
           exit 1
 
       - name: Build
-        run: dotnet build src/backend/AgroData.slnx --configuration Release --no-restore
+        id: build
+        run: dotnet build src/backend/AgroData.slnx --configuration Release --no-restore 2>&1 | tee build.log
+
+      - name: Report build diagnostics
+        if: failure()
+        run: |
+          echo "### Build failed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "error [A-Z]+[0-9]+" build.log | sort -u | head -40 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "error [A-Z]+[0-9]+" build.log | sort -u | head -10 | while IFS= read -r line; do
+            echo "::error title=build::$line"
+          done
 
       - name: Test
         run: >
