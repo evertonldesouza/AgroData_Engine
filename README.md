@@ -56,7 +56,8 @@ mostra preço, variação e série temporal reais.
   *lazy loading* do Recharts e *error boundary*.
 - **146 testes automatizados** — 45 no backend (xUnit + Moq + `WebApplicationFactory` sobre SQLite),
   41 no data engine (93% de cobertura) e 60 no frontend (100% das linhas de `lib/` e `api/`).
-- **CI/CD completo** — quatro workflows independentes por domínio, cache de dependências,
+- **CI/CD completo** — um workflow por domínio (backend com testes + build da imagem Docker,
+  frontend com lint/test/build, data engine com ruff/mypy/pytest), ingestão horária,
   Dependabot agrupado por ecossistema e deploy automático do dashboard no GitHub Pages.
 
 ## Arquitetura
@@ -167,7 +168,8 @@ cd src/frontend && npm run lint && npm run test && npm run build
 | Frontend | Vitest · `renderToStaticMarkup` · cobertura 100% | 60 |
 
 Os três conjuntos rodam em workflows separados, acionados apenas quando a pasta
-correspondente muda.
+correspondente muda. O backend também constrói a imagem Docker a cada mudança, garantindo
+que o deploy no Render continue funcionando.
 
 ## Decisões de engenharia
 
