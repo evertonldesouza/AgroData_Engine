@@ -1,66 +1,46 @@
-using AgroData.Infrastructure.Context;
-using Microsoft.EntityFrameworkCore;
-using AgroData.Domain.Interfaces;
-using AgroData.Application.Interfaces;
-using AgroData.Infrastructure.Repositories;
-using AgroData.Application.Services;
+using AgroData.API.Configuration;
+using AgroData.API.Endpoints;
+using AgroData.API.Extensions;
+using AgroData.Application;
+using AgroData.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-
-var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "https://evertonldesouza.github.io";
-
-builder.Services.AddCors(options =>
+// Hosting platforms such as Render inject the port to listen on.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
 {
-    options.AddPolicy("Frontend", policy =>
-    {
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-
-builder.Services.AddScoped<ICommodityRepository, CommodityRepository>();
-builder.Services.AddScoped<ICommodityService, CommodityService>();
+builder.Services
+    .AddApiServices(builder.Configuration)
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+// Order matters: exception handling and compression wrap everything else.
+app.UseExceptionHandler();
+app.UseResponseCompression();
+app.UseCors(ApiPolicies.FrontendCors);
+app.UseRateLimiter();
 
-app.UseExceptionHandler("/error");
-
-app.UseCors("Frontend");
-
-if (app.Environment.IsDevelopment())
+// The API documentation is intentionally public: the dashboard and this
+// endpoint are the two entry points recruiters/reviewers are expected to open.
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "AgroData API v1");
+    options.DocumentTitle = "AgroData Engine API";
+});
 
 app.MapControllers();
+app.MapHealthEndpoints();
 
-app.MapGet("/health", async (AppDbContext db) =>
+app.Run();
+
+/// <summary>Entry point marker used by the integration test host.</summary>
+public partial class Program
 {
-    var canConnect = await db.Database.CanConnectAsync();
-    return canConnect
-        ? Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow })
-        : Results.StatusCode(503);
-});
-
-app.MapGet("/error", (HttpContext ctx) =>
-{
-    return Results.Problem(detail: "Ocorreu um erro interno.", statusCode: 500);
-});
-
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5072";
-app.Run($"http://0.0.0.0:{port}");
+}
