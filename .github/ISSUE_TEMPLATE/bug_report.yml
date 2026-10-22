@@ -1,0 +1,50 @@
+name: 🐛 Bug
+description: Algo não funciona como deveria
+labels: ['bug']
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo
+      options:
+        - API (.NET)
+        - Dashboard (React)
+        - Data engine (Python)
+        - CI / infra
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: O que aconteceu?
+      description: Comportamento observado e comportamento esperado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. `docker compose up -d`
+        2. `curl localhost:5072/api/commodities`
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack trace
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      placeholder: 'local · Docker · Render · GitHub Pages / SO + browser'
+    validations:
+      required: false
