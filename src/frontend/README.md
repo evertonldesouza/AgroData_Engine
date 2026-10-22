@@ -1,16 +1,52 @@
-# React + Vite
+# Frontend — AgroData Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA em React 19 + Vite que consome a API .NET.
 
-Currently, two official plugins are available:
+## Rodando
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev     # http://localhost:5173
+```
 
-## React Compiler
+O dev server faz proxy de `/api` e `/health` para `http://localhost:5072`
+(override com `VITE_PROXY_TARGET`). Em produção, defina `VITE_API_URL` com a URL da API.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `VITE_API_URL` | *(vazio)* | URL absoluta da API; vazio = requisições relativas |
+| `VITE_BASE` | `/AgroData_Engine/` | caminho público do build (GitHub Pages) |
+| `VITE_PROXY_TARGET` | `http://localhost:5072` | destino do proxy no dev |
+| `VITE_ALLOWED_HOSTS` | *(vazio)* | hosts extra permitidos no dev server (túneis) |
 
-## Expanding the ESLint configuration
+## Estrutura
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```text
+src/
+├── api/          # client (timeout/abort/erros) + endpoints
+├── hooks/        # useCommodities (polling) · usePriceHistory (série)
+├── lib/          # format, normalize, series, symbols
+├── components/   # Header, TickerCard, MarketChart, HistoryTable, ...
+└── App.jsx       # composição e estados de tela
+```
+
+## Decisões de UI
+
+- **Dados reais**: o gráfico usa `/api/commodities/history`; nada é "inventado" a partir
+  do polling.
+- **Resiliência**: backoff exponencial (15s → 120s), pausa em aba oculta, cancelamento via
+  `AbortController` e `ErrorBoundary` no topo da árvore.
+- **Compatibilidade**: `lib/normalize.js` aceita o contrato atual e o legado
+  (`Alta`/`Baixa`/`Estável`), permitindo deploy independente da API.
+- **Performance**: Recharts é carregado sob demanda; bundle inicial ~74 kB gzip.
+- **Acessibilidade**: `aria-live` no status, tabela com `<th scope>`, foco visível e
+  respeito a `prefers-reduced-motion`.
+
+## Qualidade
+
+```bash
+npm run lint
+npm run test          # 60 testes (Vitest)
+npm run test:coverage # 100% de linhas em lib/ e api/
+npm run build
+```
