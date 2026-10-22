@@ -5,6 +5,9 @@
 *.suo
 *.cache
 .vs/
+TestResults/
+coverage/
+*.trx
 
 # .NET user secrets / local overrides
 appsettings.*.local.json
@@ -12,6 +15,7 @@ appsettings.*.local.json
 # Node / Vite
 node_modules/
 dist/
+coverage/
 *.log
 .env
 .env.local
@@ -27,12 +31,19 @@ Thumbs.db
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 .Python
 *.egg-info/
 .pytest_cache/
 .coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 .venv/
 venv/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
