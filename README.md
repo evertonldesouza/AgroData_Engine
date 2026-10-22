@@ -58,7 +58,7 @@ mostra preço, variação e série temporal reais.
   41 no data engine (93% de cobertura) e 60 no frontend (100% das linhas de `lib/` e `api/`).
 - **CI/CD completo** — um workflow por domínio (backend com testes + build da imagem Docker,
   frontend com lint/test/build, data engine com ruff/mypy/pytest), ingestão horária,
-  Dependabot agrupado por ecossistema e deploy automático do dashboard no GitHub Pages.
+  Dependabot agrupado por ecossistema e deploy automático do dashboard na branch `gh-pages` (GitHub Pages).
 
 ## Arquitetura
 

@@ -8,10 +8,11 @@ on:
       - '.github/workflows/cd-frontend.yml'
   workflow_dispatch:
 
+# Pages in this repository is served from the `gh-pages` branch
+# (Settings → Pages → "Deploy from a branch"), so the job publishes the build
+# output there instead of using the artifact-based deploy action.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -22,14 +23,16 @@ defaults:
     working-directory: src/frontend
 
 jobs:
-  build:
-    name: Build static site
+  deploy:
+    name: Build and publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -48,23 +51,32 @@ jobs:
           # Repository variable allows switching the API host without a commit.
           VITE_API_URL: ${{ vars.API_BASE_URL || 'https://agro-data-engine.onrender.com' }}
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Publish to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: src/frontend/dist
+          # .nojekyll keeps every asset path intact (Jekyll would drop files
+          # starting with an underscore).
+          touch dist/.nojekyll
 
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+          cd dist
+          git init --quiet
+          git checkout --quiet -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit --quiet --message "deploy: dashboard ${COMMIT_SHA:0:7}"
 
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force --quiet "$remote" gh-pages
+
+      - name: Deployment summary
+        run: |
+          echo "### Dashboard publicado" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

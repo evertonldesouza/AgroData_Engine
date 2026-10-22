@@ -138,7 +138,7 @@ mergeSeries → linhas alinhadas por minuto → MarketChart | HistoryTable
 | Build da API | `Dockerfile` multi-stage, usuário não-root, healthcheck em `/health/live` |
 | Banco local | `docker-compose.yml` (PostgreSQL 16 + API) |
 | Deploy da API | `render.yaml` (health check em `/health/ready`) |
-| Deploy do dashboard | `.github/workflows/cd-frontend.yml` (GitHub Pages) |
+| Deploy do dashboard | `.github/workflows/cd-frontend.yml` → publica `dist/` na branch `gh-pages` (fonte configurada no Pages) |
 | Ingestão | `.github/workflows/data-pipeline.yml` (cron horário, `--dedupe-window`) |
 | Qualidade | `ci-backend.yml`, `ci-frontend.yml`, `ci-data-engine.yml` |
 
