@@ -14,6 +14,9 @@ namespace AgroData.API.Extensions;
 /// <summary>Wires the HTTP concerns of the API.</summary>
 public static class ServiceCollectionExtensions
 {
+    private static readonly string[] ProblemDetailsMimeTypes =
+        ["application/json", "application/problem+json"];
+
     /// <summary>
     /// Registers controllers, JSON options, CORS, rate limiting, health checks,
     /// problem details, compression and Swagger.
@@ -87,8 +90,7 @@ public static class ServiceCollectionExtensions
             options.EnableForHttps = true;
             options.Providers.Add<BrotliCompressionProvider>();
             options.Providers.Add<GzipCompressionProvider>();
-            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-                new[] { "application/json", "application/problem+json" });
+            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(ProblemDetailsMimeTypes);
         });
 
         return services;
