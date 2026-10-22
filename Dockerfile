@@ -37,11 +37,10 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_NOLOGO=true
 
-RUN groupadd --system --gid 1001 app \
-    && useradd --system --uid 1001 --gid app app
+COPY --from=build /app/publish ./
 
-COPY --from=build --chown=app:app /app/publish ./
-USER app
+# .NET 8+ Linux images ship a non-root user ("app", uid 1654, exposed as APP_UID).
+USER $APP_UID
 
 EXPOSE 8080
 
