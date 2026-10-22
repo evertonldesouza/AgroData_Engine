@@ -32,14 +32,14 @@ public sealed class CommodityServiceTests
         var result = await _service.GetLatestPricesAsync();
 
         Assert.Equal(2, result.Count);
-        var soja = Assert.Single(result.Where(snapshot => snapshot.Symbol == "SOJA"));
+        var soja = Assert.Single(result, snapshot => snapshot.Symbol == "SOJA");
         Assert.Equal(140.0, soja.Price);
         Assert.Equal(135.0, soja.PreviousPrice);
         Assert.Equal(5.0, soja.Delta);
         Assert.Equal(3.7, soja.DeltaPercent);
         Assert.Equal(TrendDirection.Up, soja.Trend);
 
-        var milho = Assert.Single(result.Where(snapshot => snapshot.Symbol == "MILHO"));
+        var milho = Assert.Single(result, snapshot => snapshot.Symbol == "MILHO");
         Assert.Equal(TrendDirection.Down, milho.Trend);
         Assert.Equal(-8.33, milho.DeltaPercent);
     }
