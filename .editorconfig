@@ -27,3 +27,8 @@ csharp_new_line_before_open_brace = all
 csharp_style_namespace_declarations = file_scoped:suggestion
 dotnet_sort_system_directives_first = true
 dotnet_diagnostic.CA1848.severity = suggestion
+
+# EF Core migrations are generated/edited by tooling: keep analyzers quiet.
+[src/backend/AgroData.Infrastructure/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.CA1861.severity = none
