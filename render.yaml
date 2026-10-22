@@ -1,21 +1,19 @@
+# Render blueprint for the API. The dashboard is served by GitHub Pages
+# (see .github/workflows/cd-frontend.yml).
 services:
   - type: web
-    name: agro-data-api
+    name: agro-data-engine
     runtime: docker
     plan: starter
     region: ohio
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    autoDeploy: true
     envVars:
-      - key: ConnectionStrings__DefaultConnection
-        sync: false
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-
-  - type: web
-    name: agro-data-frontend
-    runtime: static
-    plan: free
-    buildCommand: "cd src/frontend && npm install && npm run build"
-    staticPublishPath: "src/frontend/dist"
-    envVars:
-      - key: VITE_API_URL
-        value: https://agro-data-api.onrender.com
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        value: https://evertonldesouza.github.io

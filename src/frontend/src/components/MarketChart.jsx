@@ -1,88 +1,173 @@
-import {
-  XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Area, AreaChart
-} from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { formatCurrency, formatDateTime } from '../lib/format'
+import { symbolMeta } from '../lib/symbols'
 
-function formatPrice(value) {
-  if (value == null || isNaN(value)) return '—';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+const RANGES = [
+  { label: '24h', points: 24 },
+  { label: '7d', points: 168 },
+  { label: '30d', points: 500 },
+]
 
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
+function ChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+
   return (
-    <div className="bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl px-4 py-3">
-      <p className="text-[10px] text-zinc-500 font-mono mb-2">{label}</p>
-      {payload.map((entry) => (
-        <div key={entry.name} className="flex items-center gap-2 text-xs font-mono">
-          <span
-            className="w-2 h-2 rounded-full inline-block"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-zinc-400">{entry.name}:</span>
-          <span className="text-white font-bold tabular-nums">{formatPrice(entry.value)}</span>
-        </div>
-      ))}
+    <div className="rounded-2xl border border-white/10 bg-zinc-900/95 px-4 py-3 shadow-2xl backdrop-blur">
+      <p className="mb-2 font-mono text-[10px] text-zinc-500">
+        {formatDateTime(payload[0]?.payload?.timestamp)}
+      </p>
+      <ul className="space-y-1">
+        {payload.map((entry) => (
+          <li key={entry.dataKey} className="flex items-center gap-2 font-mono text-xs">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: entry.stroke }}
+              aria-hidden="true"
+            />
+            <span className="text-zinc-400">{symbolMeta(entry.dataKey).label}</span>
+            <span className="ml-auto font-bold tabular-nums text-white">{formatCurrency(entry.value)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
-  );
+  )
 }
 
-export default function MarketChart({ data }) {
+export default function MarketChart({ rows, symbols, range, onRangeChange }) {
+  const hasData = rows.length > 1
+
   return (
-    <div className="relative bg-zinc-900/30 backdrop-blur-2xl border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden min-h-[550px]">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+    <section
+      className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/30 p-6 shadow-2xl backdrop-blur-2xl md:p-8"
+      aria-labelledby="market-chart-title"
+    >
+      <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-center">
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">Market Performance</h3>
-          <p className="text-xs text-zinc-500 font-medium italic">
-            Analise preditiva de tendencias em tempo real
+          <h2 id="market-chart-title" className="text-lg font-bold text-white">
+            Histórico de preços
+          </h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Série real extraída do warehouse · atualizada a cada minuto
           </p>
         </div>
-        <div className="flex gap-4 p-2 bg-black/20 rounded-2xl border border-white/5">
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-bold text-zinc-400">SOJA</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span className="text-[10px] font-bold text-zinc-400">MILHO</span>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <ul className="flex flex-wrap items-center gap-3">
+            {symbols.map(({ symbol }) => {
+              const meta = symbolMeta(symbol)
+              return (
+                <li key={symbol} className="flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: meta.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    {meta.label}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+
+          <div
+            className="flex rounded-xl border border-white/5 bg-black/20 p-1"
+            role="group"
+            aria-label="Intervalo do gráfico"
+          >
+            {RANGES.map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => onRangeChange(option.points)}
+                aria-pressed={range === option.points}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold transition ${
+                  range === option.points
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="h-[380px] w-full" role="img" aria-label="Grafico de performance de mercado: SOJA (verde) e MILHO (laranja)">
-        {data.length > 0 ? (
+      <div
+        className="h-[340px] w-full md:h-[380px]"
+        role="img"
+        aria-label={`Gráfico de preços com ${rows.length} pontos para ${symbols
+          .map(({ symbol }) => symbol)
+          .join(' e ')}`}
+      >
+        {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
+            <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id="colorSoja" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorMilho" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                </linearGradient>
+                {symbols.map(({ symbol }) => {
+                  const meta = symbolMeta(symbol)
+                  return (
+                    <linearGradient key={symbol} id={`fill-${symbol}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={meta.color} stopOpacity={0.22} />
+                      <stop offset="100%" stopColor={meta.color} stopOpacity={0} />
+                    </linearGradient>
+                  )
+                })}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-              <XAxis dataKey="time" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} tickMargin={15}/>
-              <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} domain={['auto', 'auto']}
-                tickFormatter={(v) => formatPrice(v)}
+
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis
+                dataKey="time"
+                stroke="rgba(255,255,255,0.15)"
+                fontSize={10}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={14}
+                minTickGap={48}
+                interval="preserveStartEnd"
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="SOJA" stroke="#10b981" strokeWidth={4} fill="url(#colorSoja)" animationDuration={2000} />
-              <Area type="monotone" dataKey="MILHO" stroke="#f59e0b" strokeWidth={4} fill="url(#colorMilho)" animationDuration={2000} />
+              <YAxis
+                stroke="rgba(255,255,255,0.15)"
+                fontSize={10}
+                axisLine={false}
+                tickLine={false}
+                width={64}
+                domain={['auto', 'auto']}
+                tickFormatter={(value) => `R$ ${Math.round(value)}`}
+              />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.15)' }} />
+              {symbols.map(({ symbol }) => {
+                const meta = symbolMeta(symbol)
+                return (
+                  <Area
+                    key={symbol}
+                    type="monotone"
+                    dataKey={symbol}
+                    name={meta.label}
+                    stroke={meta.color}
+                    strokeWidth={2.5}
+                    fill={`url(#fill-${symbol})`}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    connectNulls
+                    animationDuration={700}
+                  />
+                )
+              })}
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div
-            className="h-full flex items-center justify-center text-zinc-700 font-mono text-xs uppercase tracking-widest"
-            role="status"
-            aria-live="polite"
-          >
-            Connecting Stream...
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-600">
+              aguardando série histórica
+            </p>
+            <p className="max-w-xs text-xs text-zinc-600">
+              O pipeline precisa de pelo menos duas leituras por commodity para desenhar a curva.
+            </p>
           </div>
         )}
       </div>
-    </div>
-  );
+    </section>
+  )
 }
