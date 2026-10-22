@@ -17,6 +17,11 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
+  <!-- Test projects: readable method names and literal arrays are intentional. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <NoWarn>$(NoWarn);CA1707;CA1861;CA2007;CA1515</NoWarn>
+  </PropertyGroup>
+
   <!-- Tests do not need XML documentation. -->
   <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
