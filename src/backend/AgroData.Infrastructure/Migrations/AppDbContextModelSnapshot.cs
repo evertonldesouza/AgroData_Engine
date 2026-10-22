@@ -46,6 +46,10 @@ namespace AgroData.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Symbol");
+
+                    b.HasIndex("Symbol", "Timestamp");
+
                     b.ToTable("Commodities");
                 });
 #pragma warning restore 612, 618
