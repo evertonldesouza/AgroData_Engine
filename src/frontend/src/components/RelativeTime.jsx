@@ -1,26 +1,28 @@
-import { useEffect, useState } from 'react';
-import { formatDistanceToNowStrict } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react'
+import { formatDistanceToNowStrict } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
-export default function RelativeTime({ timestamp, prefix = 'updated' }) {
-  const [, forceUpdate] = useState(0);
+/**
+ * Renders "atualizado há X" and re-renders every second without a global timer.
+ */
+export default function RelativeTime({ timestamp, prefix = 'atualizado há' }) {
+  const [, setTick] = useState(0)
 
   useEffect(() => {
-    if (!timestamp) return;
-    const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
-    return () => clearInterval(interval);
-  }, [timestamp]);
+    if (!timestamp) return undefined
+    const interval = setInterval(() => setTick((tick) => tick + 1), 1000)
+    return () => clearInterval(interval)
+  }, [timestamp])
 
-  if (!timestamp) return null;
+  if (!timestamp) {
+    return <span className="font-mono text-zinc-600">aguardando dados</span>
+  }
 
-  const relative = formatDistanceToNowStrict(timestamp, {
-    locale: ptBR,
-    addSuffix: false,
-  });
+  const relative = formatDistanceToNowStrict(timestamp, { locale: ptBR })
 
   return (
-    <span className="text-zinc-500 font-mono" aria-live="polite">
-      {prefix} {relative} atras
+    <span className="font-mono text-zinc-500" aria-live="polite">
+      {prefix} <time dateTime={new Date(timestamp).toISOString()}>{relative}</time>
     </span>
-  );
+  )
 }
