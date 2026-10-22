@@ -1,17 +1,39 @@
-version: '3.8'
+name: agrodata
 
 services:
   database:
-    image: postgres:15
-    container_name: agro_data_db
+    image: postgres:16-alpine
+    container_name: agrodata-db
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: mysecretpassword
-      POSTGRES_DB: agro_data_engine
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mysecretpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-agro_data_engine}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-agro_data_engine}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agrodata-api
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: >-
+        Host=database;Port=5432;Database=${POSTGRES_DB:-agro_data_engine};Username=${POSTGRES_USER:-admin};Password=${POSTGRES_PASSWORD:-mysecretpassword}
+      Cors__AllowedOrigins__0: http://localhost:5173
+    ports:
+      - "5072:8080"
+    restart: unless-stopped
 
 volumes:
   postgres_data:

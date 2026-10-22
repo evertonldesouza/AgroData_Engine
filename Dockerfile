@@ -1,16 +1,51 @@
+# syntax=docker/dockerfile:1
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy only the manifests first: the restore layer is reused until a package
+# or project file changes.
+COPY src/backend/Directory.Build.props src/backend/Directory.Packages.props ./
+COPY src/backend/AgroData.API/AgroData.API.csproj AgroData.API/
+COPY src/backend/AgroData.Application/AgroData.Application.csproj AgroData.Application/
+COPY src/backend/AgroData.Domain/AgroData.Domain.csproj AgroData.Domain/
+COPY src/backend/AgroData.Infrastructure/AgroData.Infrastructure.csproj AgroData.Infrastructure/
+RUN dotnet restore AgroData.API/AgroData.API.csproj
+
+COPY src/backend/ ./
+RUN dotnet publish AgroData.API/AgroData.API.csproj \
+        --configuration Release \
+        --output /app/publish \
+        /p:UseAppHost=false
+
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-COPY . ./
-RUN dotnet restore "src/backend/AgroData.API/AgroData.API.csproj"
+# curl powers the container health check; nothing else is installed.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN dotnet publish "src/backend/AgroData.API/AgroData.API.csproj" -c Release -o out
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_NOLOGO=true
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
-WORKDIR /app
-COPY --from=build /app/out .
+RUN groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app app
 
-ENV ASPNETCORE_URLS=http://+:10000
-EXPOSE 10000
+COPY --from=build --chown=app:app /app/publish ./
+USER app
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl --fail --silent --show-error http://localhost:8080/health/live || exit 1
 
 ENTRYPOINT ["dotnet", "AgroData.API.dll"]
