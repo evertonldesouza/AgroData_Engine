@@ -46,7 +46,9 @@ jobs:
       - name: Restore
         id: restore
         continue-on-error: true
-        run: dotnet restore src/backend/AgroData.slnx 2>&1 | tee restore.log
+        run: |
+          set -o pipefail
+          dotnet restore src/backend/AgroData.slnx 2>&1 | tee restore.log
 
       - name: Report restore failure
         if: steps.restore.outcome == 'failure'
@@ -62,7 +64,9 @@ jobs:
 
       - name: Build
         id: build
-        run: dotnet build src/backend/AgroData.slnx --configuration Release --no-restore 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          dotnet build src/backend/AgroData.slnx --configuration Release --no-restore 2>&1 | tee build.log
 
       - name: Report build diagnostics
         if: failure()
