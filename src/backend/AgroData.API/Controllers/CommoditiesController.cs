@@ -9,7 +9,6 @@ namespace AgroData.API.Controllers;
 /// <summary>Read-only access to commodity prices.</summary>
 [ApiController]
 [Route("api/commodities")]
-[Produces("application/json")]
 [EnableRateLimiting(ApiPolicies.PublicApi)]
 public sealed class CommoditiesController : ControllerBase
 {
