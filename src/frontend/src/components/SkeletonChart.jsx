@@ -1,23 +1,24 @@
+const BARS = [72, 88, 64, 96, 81]
+
 export default function SkeletonChart() {
   return (
-    <div className="relative bg-zinc-900/30 backdrop-blur-2xl border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden min-h-[550px] animate-pulse">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+    <div className="relative min-h-[480px] overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/30 p-6 shadow-2xl backdrop-blur-2xl md:p-8">
+      <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
         <div className="space-y-2">
-          <div className="h-7 w-52 bg-zinc-800 rounded" />
-          <div className="h-4 w-64 bg-zinc-800/60 rounded" />
+          <div className="h-6 w-48 rounded bg-zinc-800" />
+          <div className="h-3 w-64 rounded bg-zinc-800/60" />
         </div>
-        <div className="flex gap-4 p-2 bg-black/20 rounded-2xl border border-white/5">
-          <div className="h-5 w-16 bg-zinc-800 rounded" />
-          <div className="h-5 w-16 bg-zinc-800 rounded" />
-        </div>
+        <div className="h-8 w-40 rounded-xl bg-zinc-800/60" />
       </div>
-      <div className="h-[380px] flex items-center justify-center">
-        <div className="w-full h-full flex flex-col gap-4 px-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-6 bg-zinc-800/30 rounded" style={{ width: `${70 + Math.random() * 30}%` }} />
-          ))}
-        </div>
+      <div className="flex h-[320px] w-full flex-col justify-end gap-5">
+        {BARS.map((width, index) => (
+          <div
+            key={index}
+            className="h-5 animate-pulse rounded bg-zinc-800/40"
+            style={{ width: `${width}%` }}
+          />
+        ))}
       </div>
     </div>
-  );
+  )
 }
