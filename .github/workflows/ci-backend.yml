@@ -44,7 +44,21 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore src/backend/AgroData.slnx
+        id: restore
+        continue-on-error: true
+        run: dotnet restore src/backend/AgroData.slnx 2>&1 | tee restore.log
+
+      - name: Report restore failure
+        if: steps.restore.outcome == 'failure'
+        run: |
+          echo "### Restore failed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -iE "error|NU[0-9]+" restore.log | head -40 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -iE "error|NU[0-9]+" restore.log | head -10 | while IFS= read -r line; do
+            echo "::error title=restore::$line"
+          done
+          exit 1
 
       - name: Build
         run: dotnet build src/backend/AgroData.slnx --configuration Release --no-restore
