@@ -45,11 +45,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
+      # Informational, not a gate: the collect step retries transient
+      # connection failures and reports them itself, so a single refused
+      # connection no longer costs the whole ingestion hour.
       - name: Check configuration and connectivity
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           LOG_JSON: 'true'
         run: agrodata check
+
+      - name: Show configuration summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LOG_JSON: 'true'
+        run: agrodata check --json >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Run pipeline
         env:
