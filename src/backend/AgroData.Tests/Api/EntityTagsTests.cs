@@ -28,8 +28,12 @@ public sealed class EntityTagsTests
     [Fact]
     public void Snapshot_tags_change_when_a_new_quote_arrives()
     {
+        // Same symbol and price, newer capture: the id is deliberately not part of
+        // the hash, the timestamp is — that is what makes the tag stable across
+        // restarts while still changing when new data lands.
         var before = EntityTags.ForSnapshots([Snapshot("SOJA", 136.42, 1)]);
-        var after = EntityTags.ForSnapshots([Snapshot("SOJA", 136.42, 2)]);
+        var after = EntityTags.ForSnapshots(
+            [Snapshot("SOJA", 136.42, 2, new DateTime(2026, 10, 22, 13, 0, 0, DateTimeKind.Utc))]);
 
         Assert.NotEqual(before, after);
     }
