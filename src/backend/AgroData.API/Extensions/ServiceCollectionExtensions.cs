@@ -5,6 +5,8 @@ using System.Threading.RateLimiting;
 using AgroData.API.Configuration;
 using AgroData.API.Endpoints;
 using AgroData.API.Errors;
+using AgroData.Application.Alerts;
+using AgroData.Application.Caching;
 using AgroData.Infrastructure.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -51,6 +53,18 @@ public static class ServiceCollectionExtensions
                 options.IncludeXmlComments(xmlDocumentation, includeControllerXmlComments: true);
             }
         });
+
+        services
+            .AddOptions<AlertOptions>()
+            .Bind(configuration.GetSection(AlertOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
+            .AddOptions<CachingOptions>()
+            .Bind(configuration.GetSection(CachingOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services
             .AddOptions<CorsOptions>()

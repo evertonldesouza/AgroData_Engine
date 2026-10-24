@@ -1,6 +1,7 @@
 using AgroData.API.Configuration;
 using AgroData.API.Endpoints;
 using AgroData.API.Extensions;
+using AgroData.API.Observability;
 using AgroData.Application;
 using AgroData.Infrastructure;
 
@@ -18,11 +19,15 @@ builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
+builder.Services.AddSingleton<RequestMetrics>();
+
 var app = builder.Build();
 
-// Order matters: exception handling and compression wrap everything else.
+// Order matters: exception handling and compression wrap everything else,
+// and metrics sit above the endpoints so every request is measured.
 app.UseExceptionHandler();
 app.UseResponseCompression();
+app.UseRequestMetrics();
 app.UseCors(ApiPolicies.FrontendCors);
 app.UseRateLimiter();
 
@@ -37,6 +42,7 @@ app.UseSwaggerUI(options =>
 
 app.MapControllers();
 app.MapHealthEndpoints();
+app.MapMetricsEndpoints();
 
 app.Run();
 

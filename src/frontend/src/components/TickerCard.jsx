@@ -1,4 +1,5 @@
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import ExportCsvLink from './ExportCsvLink'
 import Sparkline from './Sparkline'
 import { formatCurrency, formatPercent, formatSignedCurrency, formatTime } from '../lib/format'
 import { symbolMeta, trendStyle } from '../lib/symbols'
@@ -38,12 +39,15 @@ export default function TickerCard({ snapshot }) {
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+        <ExportCsvLink symbol={symbol} points={history.length} />
         <span className={`flex items-center gap-1 rounded-md px-2 py-1 ${style.chip}`}>
           <TrendIcon size={11} strokeWidth={2.5} aria-hidden="true" />
           <span className="font-mono text-[10px] font-bold tabular-nums">
             {hasDelta ? formatPercent(deltaPercent) : 'sem base'}
           </span>
         </span>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

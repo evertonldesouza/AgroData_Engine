@@ -12,9 +12,11 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from agrodata.collectors import PriceCollector
 from agrodata.config import Settings
+from agrodata.db import TRANSIENT_ERRORS
 from agrodata.models import CommodityPrice
 from agrodata.schemas import PriceSample
 
@@ -69,6 +71,49 @@ def _is_duplicate(session: Session, sample: PriceSample, *, window_seconds: int)
     return bool(session.execute(stmt).scalar_one())
 
 
+def _persist(
+    session: Session,
+    samples: list[PriceSample],
+    *,
+    attempts: int,
+    backoff_seconds: float,
+) -> None:
+    """Insert every sample, retrying transient connection failures.
+
+    A failed commit leaves the session unusable, so each attempt starts with a
+    rollback and re-adds the rows. Retrying the *whole* write (instead of just
+    ``commit``) is what makes the retry safe.
+    """
+
+    def attempt() -> None:
+        session.rollback()
+        session.add_all(
+            [
+                CommodityPrice(
+                    symbol=sample.symbol.upper(),
+                    price=round(sample.price, 2),
+                    timestamp=sample.timestamp,
+                    source=sample.source,
+                )
+                for sample in samples
+            ]
+        )
+        session.commit()
+
+    write = retry(
+        reraise=True,
+        stop=stop_after_attempt(max(1, attempts)),
+        wait=wait_exponential(multiplier=max(0.01, backoff_seconds), max=8),
+        retry=retry_if_exception_type(TRANSIENT_ERRORS),
+    )(attempt)
+
+    try:
+        write()
+    except TRANSIENT_ERRORS:
+        logger.exception("Persisting failed after %s attempts", attempts)
+        raise
+
+
 def run_pipeline(
     settings: Settings,
     collector: PriceCollector,
@@ -87,6 +132,8 @@ def run_pipeline(
         "Pipeline started",
         extra={"collector": collector.name, "symbols": list(targets), "dryRun": dry_run},
     )
+
+    persisted = False
 
     with session_factory() as session:
         for symbol in targets:
@@ -107,23 +154,25 @@ def run_pipeline(
                 continue
 
             report.samples.append(sample)
-            if not dry_run:
-                session.add(
-                    CommodityPrice(
-                        symbol=sample.symbol.upper(),
-                        price=round(sample.price, 2),
-                        timestamp=sample.timestamp,
-                        source=sample.source,
-                    )
-                )
 
         if dry_run:
             session.rollback()
-        else:
-            session.commit()
+        elif report.samples:
+            try:
+                _persist(
+                    session,
+                    report.samples,
+                    attempts=settings.db_connect_attempts,
+                    backoff_seconds=settings.db_retry_backoff_seconds,
+                )
+                persisted = True
+            except TRANSIENT_ERRORS as exc:
+                report.errors.append(f"database: {exc}")
 
     report.finished_at = datetime.now(UTC)
-    report.inserted = 0 if dry_run else len(report.samples)
+    # `inserted` reflects what actually reached the warehouse: a dry run writes
+    # nothing and a failed write must not be reported as a success.
+    report.inserted = len(report.samples) if persisted else 0
     logger.info("Pipeline finished", extra=report.as_dict())
     return report
 
