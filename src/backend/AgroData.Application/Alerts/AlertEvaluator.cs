@@ -1,3 +1,4 @@
+using System.Globalization;
 using AgroData.Application.DTOs;
 
 namespace AgroData.Application.Alerts;
@@ -43,6 +44,7 @@ public static class AlertEvaluator
         var change = snapshot.DeltaPercent ?? 0;
         var isDrop = change < 0;
         var magnitude = Math.Abs(change);
+        var previousPrice = snapshot.PreviousPrice ?? snapshot.Price;
 
         return new PriceAlert(
             Symbol: snapshot.Symbol,
@@ -52,8 +54,11 @@ public static class AlertEvaluator
             ReferencePrice: snapshot.PreviousPrice ?? snapshot.Price,
             ChangePercent: Math.Round(change, 2),
             Timestamp: snapshot.Timestamp,
-            Message: FormattableString.Invariant(
-                $"{snapshot.Symbol} {(isDrop ? "caiu" : "subiu")} {magnitude:0.00}% " +
-                $"({snapshot.PreviousPrice ?? snapshot.Price:0.00} → {snapshot.Price:0.00})."));
+            // string.Create (not concatenation) keeps the single interpolated string
+            // bound to an IFormatProvider, so the decimal separator never depends on
+            // the server's culture.
+            Message: string.Create(
+                CultureInfo.InvariantCulture,
+                $"{snapshot.Symbol} {(isDrop ? "caiu" : "subiu")} {magnitude:0.00}% ({previousPrice:0.00} → {snapshot.Price:0.00})."));
     }
 }
