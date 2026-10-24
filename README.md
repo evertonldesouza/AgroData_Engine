@@ -47,15 +47,24 @@ mostra preço, variação e série temporal reais.
   [`TrendCalculator`](./src/backend/AgroData.Application/Common/TrendCalculator.cs), testáveis sem banco.
 - **API pronta para produção** — Problem Details (RFC 9457), exception handler global, health
   checks de *liveness* e *readiness*, rate limiting por IP, compressão de resposta, CORS
-  configurável e OpenAPI público em `/swagger`.
+  configurável, OpenAPI público em `/swagger` e **cache HTTP com `ETag`/`304`** (o polling do
+  dashboard deixa de custar uma consulta por cliente — [ADR 0006](./docs/adr/0006-http-caching-and-conditional-get.md)).
 - **Data engine tipado e resiliente** — `mypy --strict`, configuração validada com
-  `pydantic-settings`, retry com backoff no coletor HTTP, isolamento de erro por símbolo,
-  janela de deduplicação e relatório estruturado de cada execução.
+  `pydantic-settings`, retry com backoff no coletor HTTP **e na escrita no banco**,
+  isolamento de erro por símbolo, janela de deduplicação e relatório estruturado de cada
+  execução. Inclui o **coletor CEPEA/ESALQ** (parser de HTML verificável offline com
+  `agrodata verify-source`).
 - **Frontend honesto** — o gráfico consome `/history` do banco (não inventa pontos a partir do
   polling), com backoff exponencial, pausa em aba oculta, cancelamento de requisições,
-  *lazy loading* do Recharts e *error boundary*.
-- **146 testes automatizados** — 45 no backend (xUnit + Moq + `WebApplicationFactory` sobre SQLite),
-  41 no data engine (93% de cobertura) e 60 no frontend (100% das linhas de `lib/` e `api/`).
+  *lazy loading* do Recharts e *error boundary*. **Painel de alertas** de variação (severidade
+  ordenada) e **exportação CSV** de qualquer commodity, direto do endpoint.
+- **Observabilidade pragmática** — `/metrics` no formato Prometheus (latência em histograma,
+  contadores por rota e status, requisições em voo) e `X-Response-Time-Ms` em toda resposta,
+  sem adicionar dependência ([ADR 0007](./docs/adr/0007-prometheus-metrics-in-process.md)).
+- **Segurança no CI** — CodeQL para C#, TypeScript e Python, `dotnet list package --vulnerable`,
+  `npm audit` e `pip-audit`, além de varredura semanal agendada.
+- **265 testes automatizados** — 103 no backend (xUnit + Moq + `WebApplicationFactory` sobre SQLite),
+  75 no data engine (94% de cobertura) e 87 no frontend (98% das linhas de `lib/` e `api/`).
 - **CI/CD completo** — um workflow por domínio (backend com testes + build da imagem Docker,
   frontend com lint/test/build, data engine com ruff/mypy/pytest), ingestão horária,
   Dependabot agrupado por ecossistema e deploy automático do dashboard na branch `gh-pages` (GitHub Pages).
@@ -98,6 +107,9 @@ Detalhes de camadas, fluxo de uma requisição e modelo de dados em
 | `GET` | `/api/commodities` | Snapshot por commodity: preço, anterior, variação, tendência e sparkline |
 | `GET` | `/api/commodities/history?symbol=SOJA&points=60` | Série histórica + média móvel de 7 pontos |
 | `GET` | `/api/commodities/{id}` | Cotação individual |
+| `GET` | `/api/commodities/export?symbol=SOJA&points=500` | Série histórica em CSV (download) |
+| `GET` | `/api/alerts` | Movimentos acima do limite, por severidade |
+| `GET` | `/metrics` | Métricas de requisição (formato Prometheus) |
 | `GET` | `/health` · `/health/live` · `/health/ready` | Status agregado, liveness e readiness |
 | `GET` | `/swagger` | Documentação interativa (OpenAPI) |
 
@@ -119,7 +131,10 @@ Detalhes de camadas, fluxo de uma requisição e modelo de dados em
 ]
 ```
 
-Contrato completo, erros e versionamento em [`docs/api.md`](./docs/api.md).
+`GET /api/commodities` e `/history` respondem `304 Not Modified` quando o `If-None-Match`
+confere com o `ETag` atual — o dashboard aproveita isso (`Cache-Control: public, max-age=20`).
+Contrato completo, cache, CSV, alertas, métricas, erros e versionamento em
+[`docs/api.md`](./docs/api.md).
 
 ## Rodando localmente
 
@@ -163,9 +178,9 @@ cd src/frontend && npm run lint && npm run test && npm run build
 
 | Suíte | Ferramentas | Casos |
 | --- | --- | --- |
-| Backend | xUnit · Moq · SQLite · `WebApplicationFactory` | 45 |
-| Data engine | pytest · cobertura 93% | 41 |
-| Frontend | Vitest · `renderToStaticMarkup` · cobertura 100% | 60 |
+| Backend | xUnit · Moq · SQLite · `WebApplicationFactory` | 103 |
+| Data engine | pytest · cobertura 94% | 75 |
+| Frontend | Vitest · `renderToStaticMarkup` · cobertura 98% | 87 |
 
 Os três conjuntos rodam em workflows separados, acionados apenas quando a pasta
 correspondente muda. O backend também constrói a imagem Docker a cada mudança, garantindo
@@ -203,10 +218,12 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 ## Roadmap
 
 - [ ] Autenticação JWT + RBAC para endpoints administrativos ([ADR 0004](./docs/adr/0004-public-read-only-api.md))
-- [ ] Coletor HTTP para uma fonte real de cotações (CEPEA) — o contrato já existe em `collectors/http.py`
-- [ ] Alertas de variação por e-mail/Telegram
+- [x] Coletor real de cotações — CEPEA/ESALQ (`DATA_SOURCE=cepea`, parser validável com
+      `agrodata verify-source --html pagina.html`)
+- [x] Alertas de variação no dashboard (severidade, painel e badge) — falta o envio ativo
+- [ ] Notificação de alertas por e-mail/Telegram a partir do pipeline
 - [ ] Séries de médias móveis persistidas no warehouse (hoje calculadas on-the-fly)
-- [ ] Painel de observabilidade (OpenTelemetry → Grafana)
+- [ ] Coletor OpenTelemetry → Grafana (hoje: `/metrics` compatível com Prometheus)
 
 ## English summary
 
@@ -214,8 +231,11 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 Brazilian agribusiness market. A typed Python ingestion engine collects prices into
 PostgreSQL, a .NET 10 API built with Clean Architecture exposes them with trend
 analytics, and a React 19 dashboard renders real historical series with polling,
-backoff and accessibility in mind. The repository ships with 136 automated tests,
-four CI workflows, Docker/Render deployment and documented architecture decisions.
+backoff and accessibility in mind. Read endpoints serve `ETag`/`304` and a short-lived
+server cache, prices can be exported as CSV, threshold alerts are surfaced in the UI,
+and `/metrics` exposes Prometheus-compatible counters and latency histograms. The
+repository ships with 265 automated tests, five CI workflows (including CodeQL and
+dependency audits), Docker/Render deployment and documented architecture decisions.
 
 ---
 
