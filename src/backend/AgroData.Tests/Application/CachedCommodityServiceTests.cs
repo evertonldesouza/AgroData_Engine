@@ -86,10 +86,10 @@ public sealed class CachedCommodityServiceTests
     public async Task History_is_cached_per_symbol_and_point_count()
     {
         _inner
-            .Setup(service => service.GetHistoryAsync("SOJA", 30, It.IsAny<CancellationToken>()))
+            .Setup(service => service.GetHistoryAsync(It.IsAny<string>(), 30, It.IsAny<CancellationToken>()))
             .ReturnsAsync(History("SOJA"));
         _inner
-            .Setup(service => service.GetHistoryAsync("SOJA", 60, It.IsAny<CancellationToken>()))
+            .Setup(service => service.GetHistoryAsync(It.IsAny<string>(), 60, It.IsAny<CancellationToken>()))
             .ReturnsAsync(History("SOJA"));
 
         await _service.GetHistoryAsync("soja", 30);
