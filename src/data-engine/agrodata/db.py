@@ -8,7 +8,9 @@ from contextlib import contextmanager
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from agrodata.config import Settings
 from agrodata.models import Base
@@ -62,20 +64,52 @@ def init_schema(engine: Engine) -> None:
     Base.metadata.create_all(bind=engine)
 
 
-def is_database_reachable(engine: Engine) -> bool:
+#: Errors that mean "the database is not reachable right now", not "the query is wrong".
+TRANSIENT_ERRORS = (OperationalError, InterfaceError, DBAPIError)
+
+
+def _ping(engine: Engine) -> None:
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+
+
+def verify_connection(engine: Engine, *, attempts: int = 3, backoff_seconds: float = 0.5) -> None:
+    """Raise when the database cannot be reached after ``attempts`` tries.
+
+    A paused serverless instance (Supabase/Render free tiers) commonly refuses
+    the first connection and accepts the next one a second later; that must not
+    cost an entire ingestion hour.
+    """
+    ping = retry(
+        reraise=True,
+        stop=stop_after_attempt(max(1, attempts)),
+        wait=wait_exponential(multiplier=max(0.01, backoff_seconds), max=8),
+        retry=retry_if_exception_type(TRANSIENT_ERRORS),
+    )(_ping)
+
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        ping(engine)
+    except TRANSIENT_ERRORS as exc:
+        logger.error("Database is unreachable after %s attempts: %s", attempts, exc)
+        raise
+
+
+def is_database_reachable(
+    engine: Engine, *, attempts: int = 1, backoff_seconds: float = 0.0
+) -> bool:
+    try:
+        verify_connection(engine, attempts=attempts, backoff_seconds=backoff_seconds)
         return True
-    except Exception as exc:  # pragma: no cover - depends on infra
-        logger.error("Database connectivity check failed: %s", exc)
+    except Exception:  # the caller only cares about the boolean
         return False
 
 
 __all__ = [
+    "TRANSIENT_ERRORS",
     "build_engine",
     "build_session_factory",
     "init_schema",
     "is_database_reachable",
     "session_scope",
+    "verify_connection",
 ]

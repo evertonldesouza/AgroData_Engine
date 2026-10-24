@@ -1,4 +1,5 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
+import AlertPanel from './components/AlertPanel'
 import ErrorBanner from './components/ErrorBanner'
 import EmptyState from './components/EmptyState'
 import Footer from './components/Footer'
@@ -8,6 +9,7 @@ import SkeletonCard from './components/SkeletonCard'
 import SkeletonChart from './components/SkeletonChart'
 import TickerCard from './components/TickerCard'
 import { API_BASE_URL } from './api/client'
+import { useAlerts } from './hooks/useAlerts'
 import { useCommodities } from './hooks/useCommodities'
 import { usePriceHistory } from './hooks/usePriceHistory'
 import { flattenReadings, mergeSeries } from './lib/series'
@@ -21,6 +23,7 @@ const READINGS = 8
 export default function App() {
   const { snapshots, status, error, lastUpdated, isRefreshing, retryInSeconds, refresh } =
     useCommodities()
+  const { alerts, status: alertsStatus } = useAlerts()
 
   const symbols = useMemo(() => snapshots.map((snapshot) => snapshot.symbol), [snapshots])
   const [range, setRange] = useState(DEFAULT_RANGE)
@@ -49,6 +52,7 @@ export default function App() {
           retryInSeconds={retryInSeconds}
           onRefresh={refresh}
           apiDocsUrl={API_BASE_URL ? `${API_BASE_URL}/swagger` : null}
+          alerts={alerts}
         />
 
         <main className="mt-8">
@@ -90,6 +94,10 @@ export default function App() {
               </div>
             )}
           </section>
+
+          <div className="mb-6">
+            <AlertPanel alerts={alerts} status={alertsStatus} />
+          </div>
 
           <div className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">
             <Suspense fallback={<SkeletonChart />}>

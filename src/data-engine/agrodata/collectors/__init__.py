@@ -33,6 +33,18 @@ def build_collector(settings: Settings) -> PriceCollector:
             backoff_seconds=settings.retry_backoff_seconds,
         )
 
+    if settings.data_source == "cepea":
+        from agrodata.collectors.cepea import CEPEA_FALLBACK_URLS, CepeaCollector
+
+        return CepeaCollector(
+            urls=dict(CEPEA_FALLBACK_URLS),
+            url_template=settings.cepea_url_template,
+            source_label=settings.source_label,
+            timeout_seconds=settings.http_timeout_seconds,
+            max_retries=settings.max_retries,
+            backoff_seconds=settings.retry_backoff_seconds,
+        )
+
     from agrodata.collectors.simulated import SimulatedCollector
 
     return SimulatedCollector(source_label=settings.source_label, seed=settings.random_seed)

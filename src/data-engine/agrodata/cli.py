@@ -74,6 +74,14 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(init_db)
     check = subparsers.add_parser("check", help="verify configuration and database connectivity")
     add_common(check)
+
+    verify = subparsers.add_parser(
+        "verify-source",
+        help="parse a saved CEPEA page offline (diagnose layout changes)",
+    )
+    add_common(verify)
+    verify.add_argument("--html", required=True, help="path to a saved indicator page")
+    verify.add_argument("--symbol", required=True, help="symbol the page belongs to")
     subparsers.add_parser("version", help="print the engine version")
     return parser
 
@@ -142,7 +150,11 @@ def _analyze(args: argparse.Namespace, session_factory: sessionmaker[Session]) -
 
 def _check(settings: Settings, *, as_json: bool) -> int:
     engine = build_engine(settings)
-    reachable = is_database_reachable(engine)
+    reachable = is_database_reachable(
+        engine,
+        attempts=settings.db_connect_attempts,
+        backoff_seconds=settings.db_retry_backoff_seconds,
+    )
     rows = None
     if reachable:
         with build_session_factory(engine)() as session:
@@ -170,6 +182,41 @@ def _check(settings: Settings, *, as_json: bool) -> int:
     return 0 if reachable else 1
 
 
+def _verify_source(args: argparse.Namespace) -> int:
+    """Parse a saved page so a layout change can be checked without the network."""
+    from agrodata.collectors.cepea import parse_file
+
+    sample = parse_file(args.html, args.symbol)
+    if sample is None:
+        _emit(
+            {"symbol": args.symbol.upper(), "parsed": False},
+            as_json=args.json,
+            text=f"could not parse {args.html} — the table layout probably changed",
+        )
+        return 1
+
+    payload = {
+        "symbol": sample.symbol,
+        "price": sample.price,
+        "timestamp": sample.timestamp.isoformat(),
+        "source": sample.source,
+        "parsed": True,
+    }
+    _emit(
+        payload,
+        as_json=args.json,
+        text="\n".join(
+            [
+                f"symbol    : {sample.symbol}",
+                f"price     : {sample.price:.2f}",
+                f"timestamp : {sample.timestamp.isoformat()}",
+                f"source    : {sample.source}",
+            ]
+        ),
+    )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -178,6 +225,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "version":
         print(__version__)
         return 0
+
+    # `verify-source` only parses a file: it needs neither the database nor the
+    # collector configuration, so it must work before Settings is validated.
+    if args.command == "verify-source":
+        configure_logging(args.log_level or "INFO", json_logs=False)
+        return _verify_source(args)
 
     settings = _load_settings({"log_level": args.log_level})
     if settings is None:
