@@ -24,9 +24,9 @@ O dev server faz proxy de `/api` e `/health` para `http://localhost:5072`
 ```text
 src/
 ├── api/          # client (timeout/abort/erros) + endpoints
-├── hooks/        # useCommodities (polling) · usePriceHistory (série)
-├── lib/          # format, normalize, series, symbols
-├── components/   # Header, TickerCard, MarketChart, HistoryTable, ...
+├── hooks/        # useCommodities (polling) · usePriceHistory (série) · useAlerts
+├── lib/          # format, normalize, series, symbols, alerts
+├── components/   # Header, TickerCard, MarketChart, HistoryTable, AlertPanel, ExportCsvLink, ...
 └── App.jsx       # composição e estados de tela
 ```
 
@@ -36,6 +36,10 @@ src/
   do polling.
 - **Resiliência**: backoff exponencial (15s → 120s), pausa em aba oculta, cancelamento via
   `AbortController` e `ErrorBoundary` no topo da árvore.
+- **Alertas visíveis**: painel com severidade (crítico/atenção/info) e badge no header; falha
+  na consulta de alertas degrada em silêncio, porque é um sinal secundário.
+- **Exportação direta**: o botão de CSV aponta para `/api/commodities/export`; o download é
+  feito pelo navegador (`Content-Disposition: attachment`), sem carregar o arquivo em memória.
 - **Compatibilidade**: `lib/normalize.js` aceita o contrato atual e o legado
   (`Alta`/`Baixa`/`Estável`), permitindo deploy independente da API.
 - **Performance**: Recharts é carregado sob demanda; bundle inicial ~74 kB gzip.
@@ -46,7 +50,8 @@ src/
 
 ```bash
 npm run lint
-npm run test          # 60 testes (Vitest)
-npm run test:coverage # 100% de linhas em lib/ e api/
+npm run test          # 87 testes (Vitest)
+npm run test:coverage # 98% de linhas em lib/ e api/
+npm run screenshot    # captura o dashboard (Playwright, instalado sob demanda)
 npm run build
 ```

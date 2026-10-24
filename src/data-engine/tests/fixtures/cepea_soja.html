@@ -1,0 +1,51 @@
+<!--
+  Synthetic fixture for the CEPEA/ESALQ indicator parser.
+
+  It is NOT a copy of the live page: it mirrors only the table structure the
+  parser depends on (a date in the first column, the indicator value in the
+  second) plus markup that must be ignored (headers, nested tags, thousands
+  separators, a dash in place of a missing value).
+
+  Replace it with a real page whenever one is available; the parser tests then
+  become a regression guard against layout changes.
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Indicador da soja — CEPEA/ESALQ</title>
+  </head>
+  <body>
+    <table class="indicador" summary="Indicador da soja">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>&Agrave; vista R$</th>
+          <th>Varia&ccedil;&atilde;o dia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>22/10/2026</td>
+          <td><strong>136,42</strong></td>
+          <td>-0,80%</td>
+        </tr>
+        <tr>
+          <td>21/10/2026</td>
+          <td>137,52</td>
+          <td>-0,40%</td>
+        </tr>
+        <tr>
+          <td>20/10/2026</td>
+          <td>1.380,00</td>
+          <td>0,12%</td>
+        </tr>
+        <tr>
+          <td>19/10/2026</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

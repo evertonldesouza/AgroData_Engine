@@ -140,6 +140,7 @@ mergeSeries → linhas alinhadas por minuto → MarketChart | HistoryTable
 | Deploy da API | `render.yaml` (health check em `/health/ready`) |
 | Deploy do dashboard | `.github/workflows/cd-frontend.yml` → publica `dist/` na branch `gh-pages` (fonte configurada no Pages) |
 | Ingestão | `.github/workflows/data-pipeline.yml` (cron horário, `--dedupe-window`) |
+| Segurança | `.github/workflows/security.yml` (CodeQL, `dotnet list package --vulnerable`, `npm audit`, `pip-audit` semanal) |
 | Qualidade | `ci-backend.yml`, `ci-frontend.yml`, `ci-data-engine.yml` |
 
 ## 8. Limites conhecidos

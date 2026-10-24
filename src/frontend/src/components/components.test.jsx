@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import AlertBadge from './AlertBadge'
+import AlertPanel from './AlertPanel'
 import EmptyState from './EmptyState'
+import ExportCsvLink from './ExportCsvLink'
 import Header from './Header'
 import HistoryTable from './HistoryTable'
 import RelativeTime from './RelativeTime'
@@ -86,5 +89,76 @@ describe('layout components', () => {
   it('renders the relative timestamp', () => {
     expect(renderToStaticMarkup(<RelativeTime timestamp={new Date()} />)).toContain('atualizado há')
     expect(renderToStaticMarkup(<RelativeTime timestamp={null} />)).toContain('aguardando dados')
+  })
+})
+
+const ALERTS = [
+  {
+    symbol: 'SOJA',
+    kind: 'up',
+    severity: 'critical',
+    price: 141.5,
+    referencePrice: 136.42,
+    changePercent: 3.72,
+    timestamp: '2026-10-22T12:00:00Z',
+    message: 'Soja subiu 3,72%',
+  },
+  {
+    symbol: 'MILHO',
+    kind: 'down',
+    severity: 'warning',
+    price: 57.1,
+    referencePrice: 58.19,
+    changePercent: -1.87,
+    timestamp: '2026-10-22T12:00:00Z',
+    message: 'Milho caiu 1,87%',
+  },
+]
+
+describe('alerts', () => {
+  it('renders one row per alert with severity, price and variation', () => {
+    const html = renderToStaticMarkup(<AlertPanel alerts={ALERTS} />)
+
+    expect(html).toContain('Alertas de variação')
+    expect(html).toContain('2 alertas')
+    expect(html).toContain('Soja')
+    expect(html).toContain('crítico')
+    expect(html).toContain('atenção')
+    expect(html).toContain('+3,72%')
+    expect(html).toContain('-1,87%')
+  })
+
+  it('explains an empty list instead of rendering a blank box', () => {
+    const html = renderToStaticMarkup(<AlertPanel alerts={[]} />)
+
+    expect(html).toContain('nenhuma variação relevante')
+    expect(html).toContain('sem alertas')
+  })
+
+  it('shows a loading hint while the first request is in flight', () => {
+    expect(renderToStaticMarkup(<AlertPanel alerts={[]} status="loading" />)).toContain('verificando')
+  })
+
+  it('hides the header badge when nothing is above the threshold', () => {
+    expect(renderToStaticMarkup(<AlertBadge alerts={[]} />)).toBe('')
+  })
+
+  it('shows the alert count in the header badge', () => {
+    const html = renderToStaticMarkup(<AlertBadge alerts={ALERTS} />)
+
+    expect(html).toContain('2')
+    expect(html).toContain('2 alertas')
+    expect(html).toContain('href="#alerts-title"')
+  })
+
+  it('renders a CSV download link per commodity', () => {
+    const html = renderToStaticMarkup(<ExportCsvLink symbol="soja" points={24} />)
+
+    expect(html).toContain('/api/commodities/export?symbol=SOJA&amp;points=24')
+    expect(html).toContain('download')
+  })
+
+  it('renders nothing without a symbol', () => {
+    expect(renderToStaticMarkup(<ExportCsvLink symbol="" />)).toBe('')
   })
 })
