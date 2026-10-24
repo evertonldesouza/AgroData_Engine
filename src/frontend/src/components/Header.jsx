@@ -1,8 +1,17 @@
 import { ExternalLink, Leaf, RefreshCcw } from 'lucide-react'
+import AlertBadge from './AlertBadge'
 import RelativeTime from './RelativeTime'
 import StatusPill from './StatusPill'
 
-export default function Header({ status, lastUpdated, isRefreshing, retryInSeconds, onRefresh, apiDocsUrl }) {
+export default function Header({
+  status,
+  lastUpdated,
+  isRefreshing,
+  retryInSeconds,
+  onRefresh,
+  apiDocsUrl,
+  alerts = [],
+}) {
   return (
     <header className="sticky top-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/5 bg-zinc-900/60 px-4 py-3 shadow-2xl backdrop-blur-xl md:px-5">
       <div className="flex items-center gap-3">
@@ -31,6 +40,7 @@ export default function Header({ status, lastUpdated, isRefreshing, retryInSecon
       </div>
 
       <div className="flex items-center gap-2">
+        <AlertBadge alerts={alerts} />
         {apiDocsUrl && (
           <a
             href={apiDocsUrl}
