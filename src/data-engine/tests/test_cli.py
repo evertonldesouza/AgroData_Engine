@@ -120,3 +120,31 @@ def test_invalid_configuration_exits_with_code_two(
 
     assert main(["check"]) == 2
     assert "configuration error" in capsys.readouterr().err
+
+
+def test_verify_source_parses_a_saved_page(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from agrodata.cli import main
+
+    fixture = Path(__file__).parent / "fixtures" / "cepea_soja.html"
+    page = tmp_path / "soja.html"
+    page.write_text(fixture.read_text(encoding="utf-8"), encoding="utf-8")
+
+    assert main(["verify-source", "--html", str(page), "--symbol", "SOJA", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["parsed"] is True
+    assert payload["symbol"] == "SOJA"
+    assert payload["price"] == 136.42
+
+
+def test_verify_source_reports_an_unparseable_page(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from agrodata.cli import main
+
+    page = tmp_path / "broken.html"
+    page.write_text("<html><body>Em manutenção</body></html>", encoding="utf-8")
+
+    assert main(["verify-source", "--html", str(page), "--symbol", "SOJA"]) == 1
+    assert "layout probably changed" in capsys.readouterr().out
