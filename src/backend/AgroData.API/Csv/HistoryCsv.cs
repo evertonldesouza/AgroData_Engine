@@ -67,7 +67,7 @@ public static class HistoryCsv
     }
 
     private static string Escape(string value) =>
-        value.Contains(',', StringComparison.Ordinal) || value.Contains('"', StringComparison.Ordinal)
+        value.Contains(',') || value.Contains('"')
             ? $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\""
             : value;
 }

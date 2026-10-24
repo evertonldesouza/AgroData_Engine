@@ -59,7 +59,9 @@ public sealed class AlertEvaluatorTests
             ],
             Options);
 
-        Assert.Equal(["BOI", "SOJA", "CAFE", "MILHO"], alerts.Select(alert => alert.Symbol));
+        Assert.Equal(
+            new[] { "BOI", "SOJA", "CAFE", "MILHO" },
+            alerts.Select(alert => alert.Symbol));
     }
 
     [Fact]
