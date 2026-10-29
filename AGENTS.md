@@ -1,6 +1,6 @@
 # Regras do Projeto
 
-Guia para agentes de IA (e humanos) que forem contribuir neste repositório.
+Convenções e fluxo de trabalho deste repositório — leia antes de contribuir.
 
 ## Stack
 
