@@ -49,6 +49,19 @@ npm run lint && npm run test && npm run build
   efeitos colaterais, acessibilidade obrigatória (roles, `aria-*`, foco visível).
 - Sem segredos no código: use `.env` local e secrets do GitHub Actions.
 
+## Merge
+
+PRs entram por **squash merge**: o título do PR vira o assunto do commit e o
+histórico da `main` fica linear, sem commits de merge e sem nomes de branch
+espalhados por `git log`. O PR descreve o porquê; o commit, o quê.
+
+```text
+feat(api): cache HTTP com ETag, alertas e exportação CSV (#22)
+```
+
+A branch de origem é apagada após o merge — o PR continua sendo o registro da
+discussão.
+
 ## Mudanças de arquitetura
 
 Proposta que altere contratos entre módulos deve vir com um ADR em `docs/adr/` e
