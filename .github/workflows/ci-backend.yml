@@ -128,7 +128,7 @@ jobs:
 
       # Proves the Dockerfile still builds (the API ships as an image on Render).
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
