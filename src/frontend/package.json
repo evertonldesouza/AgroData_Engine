@@ -19,7 +19,7 @@
     "node": ">=20.19"
   },
   "dependencies": {
-    "date-fns": "^4.1.0",
+    "date-fns": "^4.4.0",
     "lucide-react": "^1.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
