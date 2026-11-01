@@ -3,6 +3,44 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.2.0] — 2026-11-01
+
+Rodada de **padronização e documentação verificada**. Sem mudança de contrato: a API
+responde exatamente o mesmo; o que muda é a garantia de que o "porquê" fica registrado.
+
+### Adicionado
+
+- **Documentação com dono único** — [`docs/README.md`](./docs/README.md) indexa os
+  documentos, responde "onde documentar o quê" e define a definição de pronto; novas
+  páginas de [padrões de código](./docs/padroes-codigo.md), [testes](./docs/testes.md),
+  [segurança](./docs/seguranca.md) e [CI/CD](./docs/ci-cd.md).
+- **`CI · Docs`** — workflow que roda `scripts/check_docs.py`: documento obrigatório
+  ausente, página fora do índice, ADR sem entrada na tabela, link relativo quebrado e
+  cerca de código sem par reprovam o PR. Emite aviso quando `src/` muda sem documento.
+- **ADR 0008** — documentação como critério de aceite, com as alternativas descartadas
+  (wiki, doc gerada do código, bloqueio total) e os limites do check.
+- **Versão do dashboard injetada no build** (`__APP_VERSION__` a partir do
+  `package.json`), fim do `v3.0` escrito à mão na UI.
+
+### Alterado
+
+- **README** revisado: seção "Padrões e documentação" com a tabela de documentos, tabela
+  de qualidade com o gate de cada suíte, ADRs 0006–0008 na lista, estrutura do repositório
+  e roadmap atualizados; badges de `CI · Docs` e `Security`.
+- **`docs/arquitetura.md`** alinhado ao código: camada de cache no ciclo de uma
+  requisição, coletor CEPEA e retry de escrita no data engine, alertas e exportação CSV no
+  frontend, `/metrics` na operação, bundle inicial e limites conhecidos corrigidos.
+- **`CONTRIBUTING.md`, `AGENTS.md` e `SECURITY.md`** passam a apontar para o documento
+  certo em vez de repetir regra solta.
+- Versão **3.2.0** sincronizada em `package.json`, `pyproject.toml` e no fallback do
+  pacote Python.
+
+### Segurança
+
+- Nenhum controle novo; o inventário existente (CORS, rate limit, imagem non-root,
+  CodeQL, auditoria de dependências) agora está em [`docs/seguranca.md`](./docs/seguranca.md)
+  com o caminho do código e o teste que o cobre.
+
 ## [3.1.0] — 2026-10-24
 
 Rodada de robustez de produção, produto e observabilidade. Sem mudanças incompatíveis:

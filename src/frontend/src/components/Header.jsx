@@ -3,6 +3,10 @@ import AlertBadge from './AlertBadge'
 import RelativeTime from './RelativeTime'
 import StatusPill from './StatusPill'
 
+// Injected at build time by Vite (see vite.config.js); the fallback keeps the
+// component renderable outside the bundler.
+const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'
+
 export default function Header({
   status,
   lastUpdated,
@@ -27,7 +31,7 @@ export default function Header({
           </p>
         </div>
         <span className="ml-1 rounded border border-white/5 px-2 py-0.5 font-mono text-[9px] font-bold text-zinc-500">
-          v3.0
+          v{APP_VERSION}
         </span>
       </div>
 
