@@ -16,6 +16,6 @@ from importlib.metadata import PackageNotFoundError, version
 try:  # pragma: no cover - metadata is available in installed environments
     __version__ = version("agrodata-engine")
 except PackageNotFoundError:  # pragma: no cover - fallback for source checkouts
-    __version__ = "3.0.0"
+    __version__ = "3.2.0"
 
 __all__ = ["__version__"]

@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
+// Single source of truth for the version shown in the UI: package.json.
+// Hardcoding it in a component is how "v3.0" survived two releases.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
 // GitHub Pages serves the app from /AgroData_Engine/, local dev from /.
 const base = process.env.VITE_BASE ?? '/AgroData_Engine/'
@@ -18,6 +23,7 @@ const allowedHosts = (process.env.VITE_ALLOWED_HOSTS ?? '')
 export default defineConfig({
   plugins: [react()],
   base,
+  define: { __APP_VERSION__: JSON.stringify(version) },
   server: {
     host: '0.0.0.0',
     port: 5173,

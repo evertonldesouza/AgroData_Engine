@@ -1,0 +1,79 @@
+name: CI · Docs
+
+# Documentação é critério de aceite (ADR 0008): link quebrado, página fora do
+# índice ou ADR sem entrada na tabela reprovam o PR.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - 'docs/**'
+      - 'scripts/check_docs.py'
+      - '.github/workflows/ci-docs.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'docs/**'
+      - 'scripts/check_docs.py'
+      - '.github/workflows/ci-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Validar documentação
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Full history: the "docs missing" check diffs against the base branch.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # Standard library only: no install step to keep the job fast.
+      - name: Validate links, index and ADR table
+        run: python scripts/check_docs.py
+
+      # Soft signal, not a gate: a typo in src/ does not need a document, but a
+      # feature silently shipped without one should be visible in the PR.
+      - name: Warn when code changed without documentation
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if ! changed=$(git diff --name-only "origin/$BASE_REF...HEAD" 2>/dev/null); then
+            echo "Não foi possível comparar com origin/$BASE_REF — aviso ignorado." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          code=$(printf '%s\n' "$changed" | grep -E '^src/' || true)
+          docs=$(printf '%s\n' "$changed" | grep -E '^(docs/|README\.md|CHANGELOG\.md|CONTRIBUTING\.md|SECURITY\.md|AGENTS\.md|src/[^/]+/README\.md)' || true)
+
+          if [ -n "$code" ] && [ -z "$docs" ]; then
+            {
+              echo "### Documentação não acompanhou o código"
+              echo ""
+              echo "Este PR altera \`src/\` sem tocar em \`docs/\`, README ou CHANGELOG."
+              echo "Veja onde documentar em \`docs/README.md\` (seção \"Onde documentar o quê\")."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            echo "::warning title=Docs::Código alterado sem atualização de documentação — ver docs/README.md"
+          else
+            echo "Documentação acompanhou a mudança (ou não havia código para documentar)." >> "$GITHUB_STEP_SUMMARY"
+          fi

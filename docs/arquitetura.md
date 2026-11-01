@@ -56,15 +56,23 @@ framework, por isso são testadas com casos de tabela puros.
 
 `GET /api/commodities/history?symbol=SOJA&points=60`
 
-1. `RateLimiter` aplica o limite de 120 req/min por IP (`[EnableRateLimiting]`).
-2. `CommoditiesController` valida o parâmetro e delega ao `ICommodityService`.
-3. `CommodityService` normaliza o símbolo, limita `points` a 500 e consulta o
-   repositório, propagando o `CancellationToken`.
-4. `CommodityRepository` executa uma consulta `AsNoTracking` usando o índice
+1. `RequestMetrics` (middleware) marca o início e, no `OnStarting`, publica o
+   header `X-Response-Time-Ms`.
+2. `RateLimiter` aplica o limite de 120 req/min por IP (`[EnableRateLimiting]`).
+3. `CommoditiesController` valida o parâmetro e delega ao `ICommodityService`.
+4. `CachedCommodityService` (decorator) responde do cache em processo quando a
+   entrada ainda está dentro do TTL — 20 s no snapshot, 60 s no histórico — e usa
+   *single-flight* para não stampedar o banco quando a entrada expira
+   ([ADR 0006](./adr/0006-http-caching-and-conditional-get.md)).
+5. Em caso de *miss*, `CommodityService` normaliza o símbolo, limita `points` a
+   500 e consulta o repositório, propagando o `CancellationToken`.
+6. `CommodityRepository` executa uma consulta `AsNoTracking` usando o índice
    `IX_Commodities_Symbol_Timestamp`.
-5. O serviço ordena cronologicamente, calcula a média móvel de 7 pontos
+7. O serviço ordena cronologicamente, calcula a média móvel de 7 pontos
    (`TrendCalculator.MovingAverage`) e monta o DTO.
-6. Se nada for encontrado, o controller devolve `404` com `ProblemDetails`.
+8. O controller gera o `ETag` a partir do conteúdo, define `Cache-Control` e, se
+   o `If-None-Match` conferir, responde `304` sem corpo.
+9. Se nada for encontrado, o controller devolve `404` com `ProblemDetails`.
    Exceções inesperadas caem no `GlobalExceptionHandler`, que loga uma única vez
    com `traceId` e devolve `500` no formato RFC 9457.
 
@@ -94,7 +102,7 @@ startup, para não arriscar produção em um deploy).
 ## 5. Data engine
 
 ```text
-Settings (pydantic) ─▶ collector (simulated | http)
+Settings (pydantic) ─▶ collector (simulated | http | cepea)
                              │  PriceSample (validado)
                              ▼
                      pipeline: dedupe → persist (SQLAlchemy)
@@ -107,6 +115,12 @@ Settings (pydantic) ─▶ collector (simulated | http)
   `DATA_SOURCE=http` sem URL abortam o processo com mensagem clara.
 - **Isolamento de erro**: uma falha por símbolo gera um item em `report.errors` e
   não impede a gravação dos demais.
+- **Retry na escrita**: a persistência também repete em erro transitório de
+  conexão (`DB_CONNECT_ATTEMPTS`, `DB_RETRY_BACKOFF_SECONDS`), e `inserted` só
+  conta o que realmente foi gravado.
+- **Fonte real**: `DATA_SOURCE=cepea` lê a tabela pública do indicador ESALQ/CEPEA.
+  O parser é verificável offline com `agrodata verify-source --html pagina.html`,
+  e um layout inesperado devolve `None` em vez de inventar preço.
 - **Idempotência opcional**: `--dedupe-window 1800` ignora cotações idênticas vistas
   nos últimos 30 minutos (protege execuções manuais repetidas).
 - **Observabilidade**: `PipelineReport` (`inserted`, `skipped`, `durationMs`,
@@ -124,12 +138,18 @@ usePriceHistory ──60s──▶ GET /api/commodities/history?points=N
         │
         ▼
 mergeSeries → linhas alinhadas por minuto → MarketChart | HistoryTable
+
+useAlerts ──60s──▶ GET /api/alerts        → AlertPanel + AlertBadge
+TickerCard ──────▶ /api/commodities/export → download CSV (browser)
 ```
 
 - O gráfico usa o **histórico real** do banco; o polling só atualiza os cartões.
 - Falha de rede: backoff exponencial (15s → 120s), aviso "DEGRADED" e botão de retry.
 - Aba oculta: o polling pausa e refaz a consulta ao voltar (`visibilitychange`).
-- Recharts é carregado sob demanda (`React.lazy`), mantendo o bundle inicial em ~74 kB gzip.
+- Alertas são sinal secundário: se `/api/alerts` falhar, o painel desaparece sem
+  derrubar o dashboard.
+- Recharts é carregado sob demanda (`React.lazy`), mantendo o bundle inicial em
+  ~84 kB gzip (~105 kB para o chunk do gráfico).
 
 ## 7. Operação
 
@@ -140,13 +160,20 @@ mergeSeries → linhas alinhadas por minuto → MarketChart | HistoryTable
 | Deploy da API | `render.yaml` (health check em `/health/ready`) |
 | Deploy do dashboard | `.github/workflows/cd-frontend.yml` → publica `dist/` na branch `gh-pages` (fonte configurada no Pages) |
 | Ingestão | `.github/workflows/data-pipeline.yml` (cron horário, `--dedupe-window`) |
-| Segurança | `.github/workflows/security.yml` (CodeQL, `dotnet list package --vulnerable`, `npm audit`, `pip-audit` semanal) |
-| Qualidade | `ci-backend.yml`, `ci-frontend.yml`, `ci-data-engine.yml` |
+| Segurança | `.github/workflows/security.yml` (CodeQL, `dotnet list package --vulnerable`, `npm audit`, `pip-audit` semanal) — ver [`seguranca.md`](./seguranca.md) |
+| Qualidade | `ci-backend.yml`, `ci-frontend.yml`, `ci-data-engine.yml` — ver [`testes.md`](./testes.md) |
+| Documentação | `ci-docs.yml` executa `scripts/check_docs.py` (links, índice, ADRs) — ver [`ci-cd.md`](./ci-cd.md) |
+| Métricas | `GET /metrics` (Prometheus) + `X-Response-Time-Ms` em toda resposta |
 
 ## 8. Limites conhecidos
 
 - A API é pública e somente leitura; não há autenticação ([ADR 0004](./adr/0004-public-read-only-api.md)).
 - O plano gratuito do Render hiberna a API após inatividade: a primeira chamada pode
   levar alguns segundos (o dashboard mostra `DEGRADED` até responder).
-- Cotações simuladas por padrão; o coletor HTTP existe e está testado contra um
-  provedor falso, mas uma fonte pública real (ex.: CEPEA) ainda está no roadmap.
+- Cotações simuladas por padrão no deploy público; o coletor CEPEA existe e é
+  coberto por testes, mas depende de o layout da página não mudar (ver
+  [`src/data-engine/README.md`](../src/data-engine/README.md)).
+- `/metrics` e `/swagger` são públicos de propósito (projeto de portfólio); em um
+  produto pago, ambos seriam filtrados no proxy.
+- Cache é por processo: com N réplicas, cada uma tem sua cópia (consistência
+  eventual de até 20 s).

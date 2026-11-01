@@ -53,5 +53,12 @@ npm run lint && npm run test && npm run build
 ## Antes de concluir uma mudança
 
 1. Rodar os testes do módulo alterado.
-2. Atualizar docs (`README.md`, `docs/`, ADR se mudar contrato).
-3. Não introduzir dependência pesada sem justificar no PR.
+2. Atualizar o documento da mudança — o mapa "onde documentar o quê" está em
+   [`docs/README.md`](docs/README.md). Contrato HTTP vai para `docs/api.md`;
+   decisão estrutural vira ADR; controle de segurança entra na tabela de
+   `docs/seguranca.md`; gate/processo vai para `docs/ci-cd.md`.
+3. Rodar `python scripts/check_docs.py` (o CI reprova link quebrado e página fora do índice).
+4. Não introduzir dependência pesada sem justificar no PR.
+
+Documentação é critério de aceite ([ADR 0008](docs/adr/0008-documentacao-como-criterio-de-aceite.md)):
+PR sem o documento correspondente volta para ajuste.

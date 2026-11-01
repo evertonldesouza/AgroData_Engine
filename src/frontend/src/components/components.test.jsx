@@ -71,7 +71,7 @@ describe('layout components', () => {
     )
 
     expect(html).toContain('LIVE')
-    expect(html).toContain('v3.0')
+    expect(html).toMatch(/v\d+\.\d+\.\d+/)
   })
 
   it('shows the degraded state with the retry countdown', () => {

@@ -49,6 +49,28 @@ npm run lint && npm run test && npm run build
   efeitos colaterais, acessibilidade obrigatória (roles, `aria-*`, foco visível).
 - Sem segredos no código: use `.env` local e secrets do GitHub Actions.
 
+## Documentação
+
+Documentação faz parte da entrega, não é follow-up (ver
+[`docs/README.md`](./docs/README.md) e [ADR 0008](./docs/adr/0008-documentacao-como-criterio-de-aceite.md)):
+
+| Sua mudança | Atualize |
+| --- | --- |
+| rota, campo, status, header | [`docs/api.md`](./docs/api.md) |
+| regra de negócio, fluxo entre camadas | [`docs/arquitetura.md`](./docs/arquitetura.md) |
+| decisão estrutural (banco, cache, protocolo) | novo ADR + tabela de [`docs/adr/README.md`](./docs/adr/README.md) |
+| convenção de código | [`docs/padroes-codigo.md`](./docs/padroes-codigo.md) |
+| teste, cobertura, ferramenta | [`docs/testes.md`](./docs/testes.md) |
+| controle de segurança | [`docs/seguranca.md`](./docs/seguranca.md) |
+| workflow, gate, deploy | [`docs/ci-cd.md`](./docs/ci-cd.md) |
+| comportamento visível / versão | [`CHANGELOG.md`](./CHANGELOG.md) |
+
+Antes de abrir o PR:
+
+```bash
+python scripts/check_docs.py   # links, índice e ADRs
+```
+
 ## Merge
 
 PRs entram por **squash merge**: o título do PR vira o assunto do commit e o
