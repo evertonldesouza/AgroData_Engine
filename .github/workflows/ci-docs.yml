@@ -35,7 +35,7 @@ jobs:
     steps:
       # Full history: the "docs missing" check diffs against the base branch.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
