@@ -10,11 +10,14 @@ data engine em Python tipado e frontend React 19.
 [![CI · Backend](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-backend.yml)
 [![CI · Frontend](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-frontend.yml)
 [![CI · Data Engine](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-data-engine.yml/badge.svg)](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-data-engine.yml)
+[![CI · Docs](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-docs.yml/badge.svg)](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/ci-docs.yml)
+[![Security](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/security.yml/badge.svg)](https://github.com/evertonldesouza/AgroData_Engine/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-00d68f.svg)](./LICENSE)
 
 [**Dashboard**](https://evertonldesouza.github.io/AgroData_Engine/) ·
 [**API (Swagger)**](https://agro-data-engine.onrender.com/swagger) ·
 [**Health**](https://agro-data-engine.onrender.com/health) ·
+[Documentação](./docs/README.md) ·
 [Arquitetura](./docs/arquitetura.md) ·
 [API](./docs/api.md) ·
 [ADRs](./docs/adr/)
@@ -65,9 +68,34 @@ mostra preço, variação e série temporal reais.
   `npm audit` e `pip-audit`, além de varredura semanal agendada.
 - **265 testes automatizados** — 103 no backend (xUnit + Moq + `WebApplicationFactory` sobre SQLite),
   75 no data engine (94% de cobertura) e 87 no frontend (98% das linhas de `lib/` e `api/`).
-- **CI/CD completo** — um workflow por domínio (backend com testes + build da imagem Docker,
-  frontend com lint/test/build, data engine com ruff/mypy/pytest), ingestão horária,
-  Dependabot agrupado por ecossistema e deploy automático do dashboard na branch `gh-pages` (GitHub Pages).
+- **CI/CD completo e documentado** — um workflow por domínio (backend com testes + build da
+  imagem Docker, frontend com lint/test/build, data engine com ruff/mypy/pytest), documentos
+  verificados por CI, ingestão horária, Dependabot por ecossistema e deploy automático do
+  dashboard na branch `gh-pages` (GitHub Pages). O que é gate e como reverter está em
+  [`docs/ci-cd.md`](./docs/ci-cd.md).
+- **Padrões escritos, não tácitos** — convenções de código, estratégia de teste, controles de
+  segurança e processo de CI/CD têm documento próprio, checklist de PR e verificação
+  automática (`python scripts/check_docs.py`). Documentação é critério de aceite, não
+  cortesia ([ADR 0008](./docs/adr/0008-documentacao-como-criterio-de-aceite.md)).
+
+## Padrões e documentação
+
+O padrão adotado é simples: **cada tipo de decisão tem um documento com dono** e a
+documentação passa por CI como o código ([ADR 0008](./docs/adr/0008-documentacao-como-criterio-de-aceite.md)).
+
+| Documento | O que fixa |
+| --- | --- |
+| [Padrões de código](./docs/padroes-codigo.md) | convenções de C#, Python, React e SQL; o que não fazer |
+| [Testes](./docs/testes.md) | pirâmide por módulo, cobertura exigida, o que cada mudança precisa testar |
+| [Segurança](./docs/seguranca.md) | modelo de ameaça, controles implementados (com caminho no código) e checklist de PR |
+| [CI/CD](./docs/ci-cd.md) | workflows, required checks, merge/release, deploy e rollback |
+| [API](./docs/api.md) | contrato HTTP completo: rotas, erros, cache, CSV, alertas, métricas |
+| [Arquitetura](./docs/arquitetura.md) | camadas, fluxo de uma requisição, modelo de dados |
+| [ADRs](./docs/adr/README.md) | por que cada decisão estrutural foi tomada |
+| [Índice da documentação](./docs/README.md) | onde documentar o quê |
+
+O `CI · Docs` reprova link quebrado, página fora do índice e ADR sem entrada na tabela; e
+avisa quando `src/` muda sem nenhum documento acompanhar.
 
 ## Arquitetura
 
@@ -174,17 +202,22 @@ cd src/data-engine && pytest && ruff check . && mypy agrodata
 
 # Frontend (React)
 cd src/frontend && npm run lint && npm run test && npm run build
+
+# Documentação (links, índice, ADRs)
+python scripts/check_docs.py
 ```
 
-| Suíte | Ferramentas | Casos |
-| --- | --- | --- |
-| Backend | xUnit · Moq · SQLite · `WebApplicationFactory` | 103 |
-| Data engine | pytest · cobertura 94% | 75 |
-| Frontend | Vitest · `renderToStaticMarkup` · cobertura 98% | 87 |
+| Suíte | Ferramentas | Casos | Gate |
+| --- | --- | --- | --- |
+| Backend | xUnit · Moq · SQLite · `WebApplicationFactory` | 103 | cobertura coletada (sem limite numérico) |
+| Data engine | pytest · `pytest-cov` | 75 | cobertura ≥ 80% (hoje 94%) |
+| Frontend | Vitest · `renderToStaticMarkup` · v8 coverage | 87 | linhas e funções ≥ 80% (hoje 98%) |
+| Documentação | `scripts/check_docs.py` | todo `*.md` | links, índice e ADRs válidos |
 
-Os três conjuntos rodam em workflows separados, acionados apenas quando a pasta
-correspondente muda. O backend também constrói a imagem Docker a cada mudança, garantindo
-que o deploy no Render continue funcionando.
+Cada conjunto roda em um workflow próprio, acionado apenas quando a pasta correspondente
+muda; o backend também constrói a imagem Docker a cada mudança, garantindo que o deploy no
+Render continue funcionando. Detalhes e justificativa de cada gate em
+[`docs/testes.md`](./docs/testes.md) e [`docs/ci-cd.md`](./docs/ci-cd.md).
 
 ## Decisões de engenharia
 
@@ -195,6 +228,9 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 - [ADR 0003](./docs/adr/0003-per-symbol-queries.md) — consultas por símbolo em vez de window function
 - [ADR 0004](./docs/adr/0004-public-read-only-api.md) — API pública somente leitura, sem JWT
 - [ADR 0005](./docs/adr/0005-polling-over-websockets.md) — polling com backoff em vez de WebSocket
+- [ADR 0006](./docs/adr/0006-http-caching-and-conditional-get.md) — cache em processo + `ETag`/`304`
+- [ADR 0007](./docs/adr/0007-prometheus-metrics-in-process.md) — métricas Prometheus sem OpenTelemetry
+- [ADR 0008](./docs/adr/0008-documentacao-como-criterio-de-aceite.md) — documentação como critério de aceite, verificada por CI
 
 ## Estrutura do repositório
 
@@ -209,8 +245,13 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 │   │   └── AgroData.Tests/          # unitários, integração e API
 │   ├── data-engine/             # pacote Python instalável (`agrodata`)
 │   └── frontend/                # React 19 + Vite + Tailwind v4
-├── docs/                        # arquitetura, API, ADRs, screenshots
-├── .github/workflows/           # CI por domínio + deploy + ingestão horária
+├── docs/                        # índices, padrões, API, arquitetura, ADRs
+│   ├── README.md                    # onde documentar o quê + definição de pronto
+│   ├── padroes-codigo.md · testes.md · seguranca.md · ci-cd.md
+│   ├── api.md · arquitetura.md · product-context.md
+│   └── adr/                         # decisões estruturais (0001–0008)
+├── scripts/check_docs.py        # verificação da documentação (roda no CI)
+├── .github/workflows/           # CI por domínio + docs + segurança + deploy + ingestão
 ├── Dockerfile · docker-compose.yml · render.yaml
 └── README.md
 ```
@@ -218,12 +259,14 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 ## Roadmap
 
 - [ ] Autenticação JWT + RBAC para endpoints administrativos ([ADR 0004](./docs/adr/0004-public-read-only-api.md))
+- [ ] Gate numérico de cobertura no backend (hoje a cobertura é só coletada — ver [testes.md](./docs/testes.md))
 - [x] Coletor real de cotações — CEPEA/ESALQ (`DATA_SOURCE=cepea`, parser validável com
       `agrodata verify-source --html pagina.html`)
 - [x] Alertas de variação no dashboard (severidade, painel e badge) — falta o envio ativo
 - [ ] Notificação de alertas por e-mail/Telegram a partir do pipeline
 - [ ] Séries de médias móveis persistidas no warehouse (hoje calculadas on-the-fly)
 - [ ] Coletor OpenTelemetry → Grafana (hoje: `/metrics` compatível com Prometheus)
+- [x] Documentação padronizada e verificada no CI (`docs/`, ADR 0008)
 
 ## English summary
 
@@ -234,8 +277,9 @@ analytics, and a React 19 dashboard renders real historical series with polling,
 backoff and accessibility in mind. Read endpoints serve `ETag`/`304` and a short-lived
 server cache, prices can be exported as CSV, threshold alerts are surfaced in the UI,
 and `/metrics` exposes Prometheus-compatible counters and latency histograms. The
-repository ships with 265 automated tests, five CI workflows (including CodeQL and
-dependency audits), Docker/Render deployment and documented architecture decisions.
+repository ships with 265 automated tests, seven CI workflows (per module, docs, CodeQL
+and dependency audits), Docker/Render deployment, and written standards for code, tests,
+security and CI/CD — enforced by CI, because documentation nobody checks rots.
 
 ---
 
