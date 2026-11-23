@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Hook de mensagem de commit, versionado e ativado com:
+#
+#     python scripts/guard_identity.py install     (ajusta core.hooksPath)
+#
+# Ele só REPROVA — nunca acrescenta nada à mensagem. A regra é simples: a
+# mensagem deve ter sido escrita por quem fez o commit, sem assinatura de
+# ferramenta. Se for preciso um coautor legítimo, autorize o padrão em
+# .github/identity-allowlist.txt (fica registrado e revisável no PR).
+#
+# Falha de infraestrutura (python ausente) não bloqueia o trabalho: avisa e sai 0.
+
+MSG_FILE="$1"
+
+[ -f "$MSG_FILE" ] || exit 0
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+GUARD="$ROOT/scripts/guard_identity.py"
+
+[ -f "$GUARD" ] || exit 0
+
+PYTHON=$(command -v python3 || command -v python || true)
+if [ -z "$PYTHON" ]; then
+  echo "aviso: python não encontrado — guarda de identidade ignorada" >&2
+  exit 0
+fi
+
+if ! "$PYTHON" "$GUARD" strip-trailer < "$MSG_FILE" > "$MSG_FILE.checked" 2>/dev/null; then
+  rm -f "$MSG_FILE.checked"
+  exit 0
+fi
+
+if grep -qiE "co-authored-by:.*(arena|copilot|swe-agent|codex|claude|gemini|cursor|openhands|devin|jules)" "$MSG_FILE"; then
+  rm -f "$MSG_FILE.checked"
+  cat >&2 <<'EOF'
+
+  ────────────────────────────────────────────────────────────────
+  Commit bloqueado: a mensagem assina uma ferramenta como coautora.
+
+  Corrija removendo a linha "Co-authored-by: ..." da mensagem.
+  Se a coautoria for legítima (outra pessoa), adicione o padrão em
+  .github/identity-allowlist.txt e registre no PR.
+  ────────────────────────────────────────────────────────────────
+
+EOF
+  exit 1
+fi
+
+rm -f "$MSG_FILE.checked"
+exit 0

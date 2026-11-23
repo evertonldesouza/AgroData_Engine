@@ -42,6 +42,7 @@ REQUIRED_DOCS = (
     "docs/testes.md",
     "docs/seguranca.md",
     "docs/ci-cd.md",
+    "docs/identidade-e-autoria.md",
     "docs/adr/README.md",
     "CONTRIBUTING.md",
     "SECURITY.md",

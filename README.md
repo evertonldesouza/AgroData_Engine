@@ -91,6 +91,7 @@ documentação passa por CI como o código ([ADR 0008](./docs/adr/0008-documenta
 | [CI/CD](./docs/ci-cd.md) | workflows, required checks, merge/release, deploy e rollback |
 | [API](./docs/api.md) | contrato HTTP completo: rotas, erros, cache, CSV, alertas, métricas |
 | [Arquitetura](./docs/arquitetura.md) | camadas, fluxo de uma requisição, modelo de dados |
+| [Identidade e autoria](./docs/identidade-e-autoria.md) | como o histórico garante que o commit é seu |
 | [ADRs](./docs/adr/README.md) | por que cada decisão estrutural foi tomada |
 | [Índice da documentação](./docs/README.md) | onde documentar o quê |
 
@@ -250,7 +251,8 @@ Trade-offs documentados como ADRs — o "porquê" importa mais que o "o quê":
 │   ├── padroes-codigo.md · testes.md · seguranca.md · ci-cd.md
 │   ├── api.md · arquitetura.md · product-context.md
 │   └── adr/                         # decisões estruturais (0001–0008)
-├── scripts/check_docs.py        # verificação da documentação (roda no CI)
+├── scripts/                    # check_docs.py (docs no CI) · guard_identity.py (autoria)
+├── .githooks/commit-msg         # hook versionado: barra coautoria de ferramenta
 ├── .github/workflows/           # CI por domínio + docs + segurança + deploy + ingestão
 ├── Dockerfile · docker-compose.yml · render.yaml
 └── README.md

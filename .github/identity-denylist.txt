@@ -1,0 +1,25 @@
+# Identidades que nunca podem assinar um commit deste projeto.
+#
+# Uma expressão regular por linha, comparada em minúsculas contra
+# "Nome <email>" do autor, do committer e de cada trailer Co-authored-by.
+#
+# Os mesmos padrões estão em scripts/guard_identity.py (DEFAULT_DENYLIST), para
+# que a verificação funcione mesmo antes de o arquivo existir em algum projeto.
+# Este arquivo é a forma de acrescentar casos específicos do repositório.
+#
+# Verificado por: python scripts/guard_identity.py check
+#                 workflow "Guard · identidade" (todo PR)
+
+arena-agent
+arena\[bot\]
+copilot
+copilot-swe-agent
+swe-agent
+codex
+claude-code
+claude\[bot\]
+gemini-code-assist
+cursor-agent
+openhands
+devin-ai
+jules

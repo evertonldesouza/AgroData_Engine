@@ -49,6 +49,17 @@ npm run lint && npm run test && npm run build
   efeitos colaterais, acessibilidade obrigatória (roles, `aria-*`, foco visível).
 - Sem segredos no código: use `.env` local e secrets do GitHub Actions.
 
+## Antes do primeiro commit
+
+```bash
+python scripts/guard_identity.py install
+```
+
+Isso remove hooks locais que injetam trailer de coautoria e faz o git usar os hooks
+versionados em `.githooks/`. A mensagem do commit é **sua**: sem `Co-authored-by` de
+ferramenta. O CI (`Guard · identidade`) verifica isso em todo PR — ver
+[`docs/identidade-e-autoria.md`](./docs/identidade-e-autoria.md).
+
 ## Documentação
 
 Documentação faz parte da entrega, não é follow-up (ver
