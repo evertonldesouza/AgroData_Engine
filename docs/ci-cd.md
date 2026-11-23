@@ -12,6 +12,7 @@ claro e um gate explícito: **se um workflow não reprova nada, ele não é gate
 | `ci-data-engine.yml` | push em `main` com `src/data-engine/**`; **todo PR** | `Lint, types and tests` (`ruff check` → `ruff format --check` → `mypy` → `pytest` com gate de 80%) | — |
 | `ci-docs.yml` | push em `main` com markdown/docs; **todo PR** | `Validar documentação` (links, índice, ADRs, cercas) + aviso de documentação ausente | — |
 | `security.yml` | push/PR + **semanal** (segunda 06:00 UTC) | `CodeQL (csharp/js-ts/python)`, `Dependency audit` | resultados no GitHub Security |
+| `identity-guard.yml` | push em `main` + **todo PR** | `Guard · identidade` (autor, committer e trailer de coautoria) | — |
 | `cd-frontend.yml` | push em `main` que toca `src/frontend/**` | `Build and publish` | branch `gh-pages` (GitHub Pages) |
 | `data-pipeline.yml` | cron horário + `workflow_dispatch` | `Collect & persist` | banco (via `secrets.DATABASE_URL`) + step summary |
 
@@ -43,8 +44,8 @@ Adotados de forma uniforme — se for criar um workflow novo, siga a lista:
 
 ## Gates e required checks
 
-Um PR para `main` deve passar em **nove checks**, todos mapeados para um job
-concreto (o job é o que o GitHub reporta):
+Um PR para `main` deve passar em **dez checks**, todos mapeados para um job concreto
+(o job é o que o GitHub reporta):
 
 | Check (nome do job) | Workflow | O que reprova |
 | --- | --- | --- |
@@ -57,6 +58,7 @@ concreto (o job é o que o GitHub reporta):
 | `CodeQL (javascript-typescript)` | `security.yml` | achado no frontend |
 | `CodeQL (python)` | `security.yml` | achado no data engine |
 | `Dependency audit` | `security.yml` | CVE em NuGet, npm ou pip |
+| `Guard · identidade` | `identity-guard.yml` | commit assinado por ferramenta (autor, committer ou coautoria) |
 
 O check `CodeQL` (sem sufixo) é o *gate* da matriz de CodeQL no GitHub Security e
 não precisa ser exigido; `CodeRabbit` é revisão assistida e **não** é gate.
@@ -78,7 +80,7 @@ Sem ela, qualquer `git push` direto na `main` ignora todos os gates acima.
    - *Require linear history* (combina com o squash merge);
    - *Block force pushes*;
    - *Restrict deletions*.
-5. Na lista de status checks, adicionar os nove nomes da tabela acima — eles só
+5. Na lista de status checks, adicionar os dez nomes da tabela acima — eles só
    aparecem no seletor depois de terem rodado ao menos uma vez.
 
 > **Pegadinha que custa horas:** se um desses workflows tiver `paths:` no
@@ -101,6 +103,18 @@ git checkout main && git commit --allow-empty -m "test: bypass" && git push
 
 O último comando **precisa falhar** com `protected branch hook declined`. Se ele
 passar, a regra não está ativa.
+
+## Identidade dos commits
+
+O workflow `Guard · identidade` garante que nenhum commit do PR assina uma ferramenta como
+autora, committer ou coautora. A defesa completa (guarda local, hook versionado, listas de
+permissão e como corrigir um trailer já publicado) está em
+[`identidade-e-autoria.md`](./identidade-e-autoria.md) — resumo:
+
+```bash
+python scripts/guard_identity.py install   # uma vez por clone: remove hooks injetores
+python scripts/guard_identity.py check     # audita o histórico
+```
 
 ## Merge e release
 

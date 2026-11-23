@@ -33,6 +33,16 @@ src/data-engine/agrodata             pacote Python (collect, analyze, check)
 src/frontend/src                     api/, hooks/, lib/, components/
 ```
 
+## Primeiro passo em qualquer clone
+
+```bash
+python scripts/guard_identity.py install
+```
+
+Neutraliza hooks locais que assinam ferramentas nos commits e aponta o git para os hooks
+versionados em `.githooks/`. Detalhes e verificação em
+[`docs/identidade-e-autoria.md`](docs/identidade-e-autoria.md).
+
 ## Comandos
 
 ```bash

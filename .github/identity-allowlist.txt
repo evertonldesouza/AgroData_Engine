@@ -1,0 +1,16 @@
+# Coautoria explicitamente autorizada.
+#
+# Uma expressão regular por linha (case-insensitive) testada contra o valor do
+# trailer "Co-authored-by: <identidade>". Vazio = nenhuma coautoria é aceita,
+# que é o padrão deste projeto: cada commit tem um autor humano identificável.
+#
+# Quando usar: par programming com outra pessoa, contribuição de terceiro
+# registrada como coautoria. O PR precisa justificar a entrada — a allowlist é
+# versionada e revisada como código.
+#
+# Exemplos:
+#   maria\.silva@example\.com
+#   joão <joao@example\.com>
+#
+# Dependabot e GitHub Actions não precisam de entrada aqui: eles assinam o
+# próprio commit (autor/committer), não um trailer de coautoria.

@@ -17,6 +17,7 @@
 - [ ] Lint/formatação aplicados (`ruff`, `mypy`, `eslint`)
 - [ ] Documentação atualizada no documento certo (`docs/README.md` diz qual) e `python scripts/check_docs.py` passando
 - [ ] Sem segredos ou dados sensíveis no diff
+- [ ] Commits sem `Co-authored-by` de ferramenta (`Guard · identidade` valida)
 - [ ] `CHANGELOG`/roadmap atualizado se for mudança visível ao usuário
 - [ ] Se a mudança toca contrato, segurança ou CI, o documento correspondente (`docs/api.md`, `docs/seguranca.md`, `docs/ci-cd.md`) foi revisado
 

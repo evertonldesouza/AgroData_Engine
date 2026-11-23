@@ -17,6 +17,7 @@ que não é verificada apodrece — por isso ela tem teste próprio
 | [Testes](./testes.md) | o que testar, com que ferramenta, qual cobertura é exigida | contribuidor |
 | [Segurança](./seguranca.md) | quais controles existem, onde estão e o que revisar no PR | contribuidor, revisor |
 | [CI/CD](./ci-cd.md) | quais workflows existem, quais são gates, como publicar e reverter | contribuidor, mantenedor |
+| [Identidade e autoria](./identidade-e-autoria.md) | como o histórico garante que o commit é seu (hooks, guarda e CI) | contribuidor |
 | [ADRs](./adr/README.md) | por que cada decisão estrutural foi tomada (e o que foi descartado) | qualquer um |
 | [Changelog](../CHANGELOG.md) | o que mudou em cada versão | qualquer um |
 
@@ -33,6 +34,7 @@ A dúvida "onde escrevo isso?" tem resposta curta:
 | Tipo de teste, meta de cobertura, ferramenta | [`testes.md`](./testes.md) |
 | Controle de segurança novo (ou limite aceito) | [`seguranca.md`](./seguranca.md) |
 | Workflow, gate, required check, deploy, rollback | [`ci-cd.md`](./ci-cd.md) |
+| Assinatura/autoria de commit, hook de ferramenta, trailer de coautoria | [`identidade-e-autoria.md`](./identidade-e-autoria.md) |
 | Comportamento visível ao usuário, versão | [`CHANGELOG.md`](../CHANGELOG.md) + roadmap do [README](../README.md) |
 
 Regra prática: **se a informação vai ser necessária de novo daqui a três meses,

@@ -3,6 +3,34 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.2.2] — 2026-11-23
+
+Proteção contra assinatura de ferramenta no histórico — no repositório e em qualquer
+outro projeto.
+
+### Adicionado
+
+- **`scripts/guard_identity.py`** — três comandos: `install` (remove hooks locais de
+  mensagem e aponta `core.hooksPath` para `.githooks/`, aceitando `--repo` para aplicar
+  em outros projetos), `check` (audita autor, committer e trailers por intervalo de
+  commits) e `strip-trailer` (filtro para reescrita).
+- **`.githooks/commit-msg`** versionado: reprova commit com `Co-authored-by` de
+  ferramenta, sem nunca alterar a mensagem. Ativado por `core.hooksPath`, o que também
+  faz o git ignorar qualquer hook instalado em `.git/hooks/`.
+- **Workflow `Guard · identidade`** (`identity-guard.yml`): required check que audita os
+  commits do PR (`origin/main..HEAD`) e o histórico inteiro no push da `main`.
+- **Listas versionadas**: `.github/identity-denylist.txt` e
+  `.github/identity-allowlist.txt` (coautoria legítima entra por decisão revisada).
+- **[`docs/identidade-e-autoria.md`](./docs/identidade-e-autoria.md)**: as três camadas,
+  configuração global (`core.hooksPath` em `~/.gitconfig`) e como limpar trailer já
+  publicado.
+
+### Corrigido
+
+- Trailer `Co-authored-by: arena-agent` removido do histórico da `main` (commit de
+  squash do PR #44 herdou o trailer de um hook local). A árvore de arquivos permaneceu
+  idêntica; só a mensagem mudou.
+
 ## [3.2.1] — 2026-11-23
 
 Correção de gatilho que impediria a proteção de branch de funcionar.

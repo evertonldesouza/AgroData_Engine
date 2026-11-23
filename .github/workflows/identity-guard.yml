@@ -1,0 +1,72 @@
+name: Guard · identidade
+
+# Camada de rede: o hook local impede o commit de nascer; este workflow impede
+# que ele entre na main (e avisa quando a ferramenta assinou no nome do dono).
+#
+# Roda em todo PR, sem filtro de caminho: é um required check (ver docs/ci-cd.md).
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  identity:
+    name: Guard · identidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # precisa do histórico para varrer os commits do PR
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install guard hooks
+        run: python scripts/guard_identity.py install
+
+      # Push em main: audita tudo. PR: audita só o que o PR acrescenta, para não
+      # bloquear trabalho por causa de um commit antigo já revisado.
+      - name: Check commit identities
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "merge_group" ]; then
+            if git rev-parse --verify --quiet "origin/${BASE_REF:-main}" >/dev/null; then
+              python scripts/guard_identity.py check --range "origin/${BASE_REF:-main}..HEAD"
+            else
+              python scripts/guard_identity.py check --range "HEAD~1..HEAD"
+            fi
+          else
+            python scripts/guard_identity.py check
+          fi
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "### Guarda de identidade"
+            echo ""
+            echo "Nenhum commit deste PR assina ferramenta como autor, committer ou coautor."
+            echo ""
+            echo "Regra e allowlist: \`.github/identity-denylist.txt\` · \`.github/identity-allowlist.txt\`"
+            echo "Como corrigir um trailer indesejado: \`docs/ci-cd.md#identidade-dos-commits\`"
+          } >> "$GITHUB_STEP_SUMMARY"
