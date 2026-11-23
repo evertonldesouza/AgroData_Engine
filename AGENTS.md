@@ -36,7 +36,8 @@ src/frontend/src                     api/, hooks/, lib/, components/
 ## Primeiro passo em qualquer clone
 
 ```bash
-python scripts/guard_identity.py install
+python scripts/guard_identity.py install --global   # uma vez por máquina, todos os projetos
+python scripts/guard_identity.py doctor             # a proteção está ativa aqui?
 ```
 
 Neutraliza hooks locais que assinam ferramentas nos commits e aponta o git para os hooks
