@@ -6,10 +6,12 @@ on:
     paths:
       - 'src/backend/**'
       - '.github/workflows/ci-backend.yml'
+  # pull_request runs on every PR on purpose: a required check that is skipped
+  # stays "Expected — waiting for status" and blocks the merge forever. The path
+  # filter on `push` still saves runners on the frequent main-only activity.
   pull_request:
-    paths:
-      - 'src/backend/**'
-      - '.github/workflows/ci-backend.yml'
+    branches: [main]
+  merge_group:
   workflow_dispatch:
 
 concurrency:

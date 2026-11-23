@@ -3,6 +3,26 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.2.1] — 2026-11-23
+
+Correção de gatilho que impediria a proteção de branch de funcionar.
+
+### Corrigido
+
+- **`pull_request` sem filtro de caminho** nos workflows `ci-backend`, `ci-frontend`,
+  `ci-data-engine` e `ci-docs`. Com `paths:`, um check obrigatório não roda em PRs que
+  não tocam aquela pasta e o GitHub o mantém em `Expected — waiting for status`, o que
+  **bloqueia o merge para sempre**. O filtro continua no `push` em `main`, onde economiza
+  runner de verdade.
+- `merge_group` declarado nos workflows que são required checks, para a merge queue
+  poder satisfazer as exigências.
+
+### Alterado
+
+- [`docs/ci-cd.md`](./docs/ci-cd.md) passa a listar os **nove checks obrigatórios** com o
+  workflow de origem, o passo a passo da configuração (Rulesets) e o teste que prova que
+  a proteção está ativa (um push direto precisa ser recusado).
+
 ## [3.2.0] — 2026-11-01
 
 Rodada de **padronização e documentação verificada**. Sem mudança de contrato: a API

@@ -7,10 +7,10 @@ claro e um gate explícito: **se um workflow não reprova nada, ele não é gate
 
 | Workflow | Gatilho | Jobs (gate) | Publica |
 | --- | --- | --- | --- |
-| `ci-backend.yml` | push/PR que toca `src/backend/**` | `Build, test and coverage` (restore → build → test), `Build container image` (Dockerfile) | artefato `backend-test-results` (`.trx` + cobertura, 7 dias) |
-| `ci-frontend.yml` | `src/frontend/**` | `Lint, test and build` (`eslint` → `vitest` → `vite build`) | artefato `frontend-dist` |
-| `ci-data-engine.yml` | `src/data-engine/**` | `Lint, types and tests` (`ruff check` → `ruff format --check` → `mypy` → `pytest` com gate de 80%) | — |
-| `ci-docs.yml` | `**/*.md`, `docs/**`, `scripts/check_docs.py` | `Validar documentação` (links, índice, ADRs, cercas) + aviso de documentação ausente | — |
+| `ci-backend.yml` | push em `main` com `src/backend/**`; **todo PR** | `Build, test and coverage` (restore → build → test), `Build container image` (Dockerfile) | artefato `backend-test-results` (`.trx` + cobertura, 7 dias) |
+| `ci-frontend.yml` | push em `main` com `src/frontend/**`; **todo PR** | `Lint, test and build` (`eslint` → `vitest` → `vite build`) | artefato `frontend-dist` |
+| `ci-data-engine.yml` | push em `main` com `src/data-engine/**`; **todo PR** | `Lint, types and tests` (`ruff check` → `ruff format --check` → `mypy` → `pytest` com gate de 80%) | — |
+| `ci-docs.yml` | push em `main` com markdown/docs; **todo PR** | `Validar documentação` (links, índice, ADRs, cercas) + aviso de documentação ausente | — |
 | `security.yml` | push/PR + **semanal** (segunda 06:00 UTC) | `CodeQL (csharp/js-ts/python)`, `Dependency audit` | resultados no GitHub Security |
 | `cd-frontend.yml` | push em `main` que toca `src/frontend/**` | `Build and publish` | branch `gh-pages` (GitHub Pages) |
 | `data-pipeline.yml` | cron horário + `workflow_dispatch` | `Collect & persist` | banco (via `secrets.DATABASE_URL`) + step summary |
@@ -19,8 +19,14 @@ claro e um gate explícito: **se um workflow não reprova nada, ele não é gate
 
 Adotados de forma uniforme — se for criar um workflow novo, siga a lista:
 
-- **Path filter**: o workflow só roda quando a pasta dele muda (economiza runner e
-  mantém o sinal alto).
+- **Path filter só em `push`**: no `pull_request` o filtro é proibido. O GitHub
+  exige que **todo check obrigatório reporte uma conclusão** em cada PR; quando o
+  filtro de caminho impede o workflow de rodar, o check fica
+  `Expected — waiting for status to be reported` para sempre e o PR nunca entra
+  (sem que nada pareça errado no código). O filtro continua no `push` em `main`,
+  onde de fato economiza runner.
+- **`merge_group`** declarado nos workflows que são required checks: sem ele a
+  merge queue nunca consegue satisfazer as exigências.
 - **`concurrency` com `cancel-in-progress`**: push novo cancela o run anterior da
   mesma branch (exceto deploy e ingestão, que usam `cancel-in-progress: false`).
 - **`timeout-minutes`** em todo job: run travado não consome a cota do mês.
@@ -37,29 +43,64 @@ Adotados de forma uniforme — se for criar um workflow novo, siga a lista:
 
 ## Gates e required checks
 
-Um PR para `main` deve passar em:
+Um PR para `main` deve passar em **nove checks**, todos mapeados para um job
+concreto (o job é o que o GitHub reporta):
 
-```text
-Build, test and coverage      (backend)
-Build container image         (backend)
-Lint, test and build          (frontend)
-Lint, types and tests         (data engine)
-Validar documentação          (docs)
-CodeQL (csharp) · (javascript-typescript) · (python)
-Dependency audit
+| Check (nome do job) | Workflow | O que reprova |
+| --- | --- | --- |
+| `Build, test and coverage` | `ci-backend.yml` | build, restore ou teste do backend |
+| `Build container image` | `ci-backend.yml` | `Dockerfile` não constrói |
+| `Lint, test and build` | `ci-frontend.yml` | `eslint`, `vitest` ou `vite build` |
+| `Lint, types and tests` | `ci-data-engine.yml` | `ruff`, `ruff format`, `mypy` ou cobertura < 80% |
+| `Validar documentação` | `ci-docs.yml` | link quebrado, página fora do índice, ADR sem entrada |
+| `CodeQL (csharp)` | `security.yml` | achado de segurança no C# |
+| `CodeQL (javascript-typescript)` | `security.yml` | achado no frontend |
+| `CodeQL (python)` | `security.yml` | achado no data engine |
+| `Dependency audit` | `security.yml` | CVE em NuGet, npm ou pip |
+
+O check `CodeQL` (sem sufixo) é o *gate* da matriz de CodeQL no GitHub Security e
+não precisa ser exigido; `CodeRabbit` é revisão assistida e **não** é gate.
+
+### Como configurar (Settings → Rules, o único passo que não é versionável)
+
+O repositório não guarda a proteção de branch: ela é configuração do GitHub.
+Sem ela, qualquer `git push` direto na `main` ignora todos os gates acima.
+
+1. **Settings → Rules → Rulesets → New branch ruleset** (preferido) ou
+   *Settings → Branches → Add classic branch protection rule*.
+2. **Target**: `main`.
+3. **Enforcement**: Active.
+4. Marcar:
+   - *Require a pull request before merging* (0 aprovações é aceitável em projeto
+     solo — o objetivo é impedir push direto);
+   - *Require status checks to pass* → **Require branches to be up to date before
+     merging**;
+   - *Require linear history* (combina com o squash merge);
+   - *Block force pushes*;
+   - *Restrict deletions*.
+5. Na lista de status checks, adicionar os nove nomes da tabela acima — eles só
+   aparecem no seletor depois de terem rodado ao menos uma vez.
+
+> **Pegadinha que custa horas:** se um desses workflows tiver `paths:` no
+> `pull_request`, o check correspondente fica `Expected` para sempre em PRs que
+> não tocam aquela pasta, e o merge fica bloqueado. É por isso que os workflows
+> daqui rodam em **todo** PR e o filtro de caminho só existe no `push`.
+
+### Conferindo que está valendo
+
+```bash
+# deve responder com a lista de checks exigidos (ou com "Not Found" se não houver)
+gh api repos/{owner}/{repo}/branches/main/protection
+
+# versão moderna (rulesets)
+gh api repos/{owner}/{repo}/rulesets --jq '.[].name'
+
+# teste real: um push direto deve ser recusado
+git checkout main && git commit --allow-empty -m "test: bypass" && git push
 ```
 
-CodeRabbit é revisão assistida, não gate.
-
-**Configuração recomendada** (Settings → Branches → proteção de `main`):
-
-- *Require status checks to pass* com a lista acima;
-- *Require branches to be up to date before merging*;
-- *Do not allow force pushes* e *do not allow deletions*;
-- *Require linear history* (combina com o squash merge).
-
-Isso não é controlado por arquivo no repositório e por isso está escrito aqui:
-sem essa configuração, qualquer push direto em `main` fura todos os gates.
+O último comando **precisa falhar** com `protected branch hook declined`. Se ele
+passar, a regra não está ativa.
 
 ## Merge e release
 

@@ -11,12 +11,11 @@ on:
       - 'docs/**'
       - 'scripts/check_docs.py'
       - '.github/workflows/ci-docs.yml'
+  # No path filter: a required check that does not run on every PR stays
+  # "Expected" forever and blocks the merge. The validation itself is cheap.
   pull_request:
-    paths:
-      - '**/*.md'
-      - 'docs/**'
-      - 'scripts/check_docs.py'
-      - '.github/workflows/ci-docs.yml'
+    branches: [main]
+  merge_group:
   workflow_dispatch:
 
 permissions:

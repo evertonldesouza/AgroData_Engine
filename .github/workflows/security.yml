@@ -3,8 +3,11 @@ name: Security
 on:
   push:
     branches: [main]
+  # Always on PRs: CodeQL and the audits are required checks, and a skipped
+  # required check never reports a conclusion.
   pull_request:
     branches: [main]
+  merge_group:
   schedule:
     # Weekly, so a newly disclosed CVE is caught even without a commit.
     - cron: '0 6 * * 1'
