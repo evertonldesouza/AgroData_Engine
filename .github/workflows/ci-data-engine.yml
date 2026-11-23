@@ -1,0 +1,56 @@
+name: CI · Data Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/data-engine/**'
+      - '.github/workflows/ci-data-engine.yml'
+  # Every PR: a required check that is skipped never reports a conclusion.
+  # (The path filter above still applies to pushes on main.)
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: data-engine-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: src/data-engine
+
+jobs:
+  quality:
+    name: Lint, types and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: src/data-engine/pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+      - name: Mypy (strict)
+        run: mypy agrodata
+
+      - name: Pytest
+        run: pytest

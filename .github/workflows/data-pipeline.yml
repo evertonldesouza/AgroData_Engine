@@ -1,0 +1,75 @@
+name: Data · Ingestão horária
+
+on:
+  schedule:
+    # Every hour, on the hour (UTC).
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: 'Símbolos separados por vírgula (vazio = padrão)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Coletar sem gravar no banco'
+        type: boolean
+        default: false
+
+concurrency:
+  group: data-pipeline
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: src/data-engine
+
+jobs:
+  ingest:
+    name: Collect & persist
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: src/data-engine/pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      # Informational, not a gate: the collect step retries transient
+      # connection failures and reports them itself, so a single refused
+      # connection no longer costs the whole ingestion hour.
+      - name: Check configuration and connectivity
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LOG_JSON: 'true'
+        run: agrodata check
+
+      - name: Show configuration summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LOG_JSON: 'true'
+        run: agrodata check --json >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Run pipeline
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATA_SOURCE: simulated
+          LOG_JSON: 'true'
+          LOG_LEVEL: INFO
+        run: >
+          agrodata collect
+          --dedupe-window 1800
+          --json
+          ${{ inputs.symbols && format('--symbols {0}', inputs.symbols) || '' }}
+          ${{ inputs.dry_run && '--dry-run' || '' }}

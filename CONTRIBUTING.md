@@ -1,0 +1,90 @@
+# Contribuindo
+
+Obrigado pelo interesse! Este é um projeto de portfólio, mas segue um fluxo de
+contribuição real.
+
+## Fluxo
+
+1. Abra uma issue descrevendo o problema (use o template).
+2. Crie a branch a partir de `main`: `feat/descricao-curta` ou `fix/descricao-curta`.
+3. Faça commits pequenos seguindo [Conventional Commits](https://www.conventionalcommits.org/).
+4. Garanta que os três conjuntos de testes passam.
+5. Abra o PR preenchendo o template (Why / What / How).
+
+## Commits
+
+```text
+feat(api): adiciona endpoint de histórico por símbolo
+fix(engine): isola falha de coleta por símbolo
+chore(ci): separa workflows por domínio
+docs(adr): registra decisão sobre polling
+test(frontend): cobre normalização do payload legado
+```
+
+Escopos usados: `api`, `app`, `infra`, `engine`, `web`, `ci`, `docs`, `adr`.
+
+## Antes de abrir o PR
+
+```bash
+# Backend
+dotnet build src/backend/AgroData.slnx -c Release
+dotnet test src/backend/AgroData.Tests
+
+# Data engine
+cd src/data-engine
+ruff check . && ruff format --check . && mypy agrodata && pytest
+
+# Frontend
+cd src/frontend
+npm run lint && npm run test && npm run build
+```
+
+## Padrões
+
+- C#: nomes em PascalCase, `async` com sufixo `Async`, cancelamento propagado,
+  `AsNoTracking` em leitura, XML docs em APIs públicas.
+- Python: tipagem completa (`mypy --strict`), funções puras quando possível,
+  logging estruturado em vez de `print`.
+- React: componentes funcionais, lógica pura em `src/lib` (testada), hooks para
+  efeitos colaterais, acessibilidade obrigatória (roles, `aria-*`, foco visível).
+- Sem segredos no código: use `.env` local e secrets do GitHub Actions.
+
+## Documentação
+
+Documentação faz parte da entrega, não é follow-up (ver
+[`docs/README.md`](./docs/README.md) e [ADR 0008](./docs/adr/0008-documentacao-como-criterio-de-aceite.md)):
+
+| Sua mudança | Atualize |
+| --- | --- |
+| rota, campo, status, header | [`docs/api.md`](./docs/api.md) |
+| regra de negócio, fluxo entre camadas | [`docs/arquitetura.md`](./docs/arquitetura.md) |
+| decisão estrutural (banco, cache, protocolo) | novo ADR + tabela de [`docs/adr/README.md`](./docs/adr/README.md) |
+| convenção de código | [`docs/padroes-codigo.md`](./docs/padroes-codigo.md) |
+| teste, cobertura, ferramenta | [`docs/testes.md`](./docs/testes.md) |
+| controle de segurança | [`docs/seguranca.md`](./docs/seguranca.md) |
+| workflow, gate, deploy | [`docs/ci-cd.md`](./docs/ci-cd.md) |
+| comportamento visível / versão | [`CHANGELOG.md`](./CHANGELOG.md) |
+
+Antes de abrir o PR:
+
+```bash
+python scripts/check_docs.py   # links, índice e ADRs
+```
+
+## Merge
+
+PRs entram por **squash merge**: o título do PR vira o assunto do commit e o
+histórico da `main` fica linear, sem commits de merge e sem nomes de branch
+espalhados por `git log`. O PR descreve o porquê; o commit, o quê.
+
+```text
+feat(api): cache HTTP com ETag, alertas e exportação CSV (#22)
+```
+
+A branch de origem é apagada após o merge — o PR continua sendo o registro da
+discussão.
+
+## Mudanças de arquitetura
+
+Proposta que altere contratos entre módulos deve vir com um ADR em `docs/adr/` e
+a atualização da tabela em `docs/adr/README.md`.
