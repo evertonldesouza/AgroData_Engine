@@ -52,7 +52,8 @@ npm run lint && npm run test && npm run build
 ## Antes do primeiro commit
 
 ```bash
-python scripts/guard_identity.py install
+python scripts/guard_identity.py install --global   # vale para todos os seus projetos
+python scripts/guard_identity.py doctor             # confirma que está ativa
 ```
 
 Isso remove hooks locais que injetam trailer de coautoria e faz o git usar os hooks

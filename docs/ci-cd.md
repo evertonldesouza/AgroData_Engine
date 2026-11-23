@@ -12,7 +12,7 @@ claro e um gate explícito: **se um workflow não reprova nada, ele não é gate
 | `ci-data-engine.yml` | push em `main` com `src/data-engine/**`; **todo PR** | `Lint, types and tests` (`ruff check` → `ruff format --check` → `mypy` → `pytest` com gate de 80%) | — |
 | `ci-docs.yml` | push em `main` com markdown/docs; **todo PR** | `Validar documentação` (links, índice, ADRs, cercas) + aviso de documentação ausente | — |
 | `security.yml` | push/PR + **semanal** (segunda 06:00 UTC) | `CodeQL (csharp/js-ts/python)`, `Dependency audit` | resultados no GitHub Security |
-| `identity-guard.yml` | push em `main` + **todo PR** | `Guard · identidade` (autor, committer e trailer de coautoria) | — |
+| `identity-guard.yml` | push em `main` + **todo PR** + `workflow_call` | `Guard · identidade` (autor, committer e trailer de coautoria) | — |
 | `cd-frontend.yml` | push em `main` que toca `src/frontend/**` | `Build and publish` | branch `gh-pages` (GitHub Pages) |
 | `data-pipeline.yml` | cron horário + `workflow_dispatch` | `Collect & persist` | banco (via `secrets.DATABASE_URL`) + step summary |
 

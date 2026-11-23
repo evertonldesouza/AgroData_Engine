@@ -4,6 +4,13 @@ name: Guard · identidade
 # que ele entre na main (e avisa quando a ferramenta assinou no nome do dono).
 #
 # Roda em todo PR, sem filtro de caminho: é um required check (ver docs/ci-cd.md).
+#
+# TRÊS FORMAS DE USAR (a mesma lógica, sem duplicação):
+#   1. neste repositório — dispara sozinho nos eventos abaixo;
+#   2. em outro repositório, apontando para cá:
+#        uses: evertonldesouza/AgroData_Engine/.github/workflows/identity-guard.yml@main
+#      com `permissions: contents: read` no workflow chamador;
+#   3. copiando o arquivo: `python scripts/guard_identity.py distribute` ajuda.
 
 on:
   pull_request:
@@ -12,6 +19,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      base-ref:
+        description: "Branch base quando o chamador usa outra (default: main)"
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -37,26 +51,60 @@ jobs:
         with:
           python-version: '3.12'
 
+      # A guarda é baixada do repositório que hospeda este workflow, para um
+      # projeto sem scripts/ também funcionar. Neste repositório, o arquivo local
+      # tem precedência (é o mesmo texto, versão do próprio commit).
+      - name: Fetch guard
+        env:
+          # Quem hospeda o workflow (este repositório quando chamado de fora).
+          GUARD_REPO: evertonldesouza/AgroData_Engine
+        run: |
+          set -euo pipefail
+          if [ -f scripts/guard_identity.py ]; then
+            echo "guarda local encontrada"
+            exit 0
+          fi
+          mkdir -p scripts
+          curl -fsSL \
+            "https://raw.githubusercontent.com/${GUARD_REPO}/main/scripts/guard_identity.py" \
+            -o scripts/guard_identity.py
+          echo "guarda baixada de ${GUARD_REPO}"
+
       - name: Install guard hooks
         run: python scripts/guard_identity.py install
 
-      # Push em main: audita tudo. PR: audita só o que o PR acrescenta, para não
-      # bloquear trabalho por causa de um commit antigo já revisado.
+      # Prova que a guarda ainda reprova: se este passo passar a aprovar um
+      # trailer conhecido, o check estaria verde por não funcionar.
+      - name: Self-test
+        run: python scripts/guard_identity.py self-test
+
+      # PR: audita só o que o PR acrescenta, para não bloquear trabalho por causa
+      # de commit antigo já revisado. Push em main: audita o histórico inteiro
+      # (todas as branches) mais o commit que acabou de entrar — cobertura extra
+      # para merge commit / commit de tag que ainda não está numa branch.
       - name: Check commit identities
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
+          INPUT_BASE_REF: ${{ inputs.base-ref }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          base="${BASE_REF:-${INPUT_BASE_REF:-main}}"
 
           if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "merge_group" ]; then
-            if git rev-parse --verify --quiet "origin/${BASE_REF:-main}" >/dev/null; then
-              python scripts/guard_identity.py check --range "origin/${BASE_REF:-main}..HEAD"
+            if git rev-parse --verify --quiet "origin/${base}" >/dev/null; then
+              python scripts/guard_identity.py check --range "origin/${base}..HEAD"
             else
               python scripts/guard_identity.py check --range "HEAD~1..HEAD"
             fi
           else
             python scripts/guard_identity.py check
+            # Repositório com um único commit não tem ~1; o histórico inteiro
+            # acima já cobriu esse caso.
+            if git rev-parse --verify --quiet "${SHA}~1" >/dev/null; then
+              python scripts/guard_identity.py check --range "${SHA}~1..${SHA}"
+            fi
           fi
 
       - name: Write summary
@@ -68,5 +116,7 @@ jobs:
             echo "Nenhum commit deste PR assina ferramenta como autor, committer ou coautor."
             echo ""
             echo "Regra e allowlist: \`.github/identity-denylist.txt\` · \`.github/identity-allowlist.txt\`"
-            echo "Como corrigir um trailer indesejado: \`docs/ci-cd.md#identidade-dos-commits\`"
+            echo ""
+            echo "Só a **cauda** da mensagem conta como trailer (como o próprio git faz)."
+            echo "Como corrigir um trailer indesejado: \`docs/identidade-e-autoria.md\`"
           } >> "$GITHUB_STEP_SUMMARY"

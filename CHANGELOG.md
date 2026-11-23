@@ -3,6 +3,34 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.2.3] — 2026-11-23
+
+Proteção de identidade que vale para **todos** os projetos, não só este.
+
+### Adicionado
+
+- **`install --global`**: grava `~/.githooks/commit-msg`, copia a guarda para
+  `~/.local/share/guard-identity/` e define `core.hooksPath` global. A partir daí todo
+  `git commit` de qualquer repositório da máquina passa pela guarda, inclusive projetos
+  clonados depois — sem precisar de arquivo algum dentro deles.
+- **`doctor`**: diz se a proteção está ativa no repositório e o que falta; detecta o caso
+  em que um `core.hooksPath` local sem guarda anula o global.
+- **`scan <pastas>`**: audita todos os repositórios de uma árvore de uma vez.
+- **`self-test`**: prova, em repositório descartável, que um trailer de ferramenta é
+  reprovado e que prosa citando trailer é aprovada. Roda no CI.
+- **`check-msg`**: a regra do hook passa a viver no script; o `commit-msg` só chama.
+  `doctor` compara o hook versionado com `HOOK_SCRIPT` e acusa divergência.
+- **`identity-guard.yml` com `workflow_call`**: outro projeto usa a mesma regra com
+  `uses: evertonldesouza/AgroData_Engine/.github/workflows/identity-guard.yml@main`,
+  baixando a guarda central quando não houver cópia local.
+
+### Corrigido
+
+- `install` apontava `core.hooksPath` para uma pasta `.githooks/` sem `commit-msg`,
+  deixando a proteção inerte e o `doctor` mentindo "ok". Agora exige o hook; sem ele, cai
+  no hook global e remove o `hooksPath` local que atrapalharia.
+- Caminhos globais não expandiam `~` (a guarda subiu com `Path("~/.githooks")`, relativo).
+
 ## [3.2.2] — 2026-11-23
 
 Proteção contra assinatura de ferramenta no histórico — no repositório e em qualquer

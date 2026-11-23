@@ -1,24 +1,22 @@
 #!/bin/sh
 #
-# Hook de mensagem de commit, versionado e ativado com:
+# Guarda de identidade — bloqueia commit que assina uma ferramenta.
+# Gerado por `python scripts/guard_identity.py install [--global]`.
 #
-#     python scripts/guard_identity.py install     (ajusta core.hooksPath)
+# Só REPROVA, nunca altera a mensagem. A regra vive em guard_identity.py
+# (comando check-msg), para não existir uma segunda implementação dela aqui.
 #
-# Ele só REPROVA — nunca acrescenta nada à mensagem. A regra é simples: a
-# mensagem deve ter sido escrita por quem fez o commit, sem assinatura de
-# ferramenta. Se for preciso um coautor legítimo, autorize o padrão em
-# .github/identity-allowlist.txt (fica registrado e revisável no PR).
-#
-# Falha de infraestrutura (python ausente) não bloqueia o trabalho: avisa e sai 0.
-
-MSG_FILE="$1"
-
-[ -f "$MSG_FILE" ] || exit 0
+# Falha de infraestrutura (python ausente, guarda não instalada) avisa e deixa
+# passar: um repositório sem a guarda não pode impedir o trabalho.
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 GUARD="$ROOT/scripts/guard_identity.py"
+[ -f "$GUARD" ] || GUARD="$HOME/.local/share/guard-identity/guard_identity.py"
 
-[ -f "$GUARD" ] || exit 0
+if [ ! -f "$GUARD" ]; then
+  echo "aviso: guarda de identidade não encontrada — commit liberado" >&2
+  exit 0
+fi
 
 PYTHON=$(command -v python3 || command -v python || true)
 if [ -z "$PYTHON" ]; then
@@ -26,26 +24,4 @@ if [ -z "$PYTHON" ]; then
   exit 0
 fi
 
-if ! "$PYTHON" "$GUARD" strip-trailer < "$MSG_FILE" > "$MSG_FILE.checked" 2>/dev/null; then
-  rm -f "$MSG_FILE.checked"
-  exit 0
-fi
-
-if grep -qiE "co-authored-by:.*(arena|copilot|swe-agent|codex|claude|gemini|cursor|openhands|devin|jules)" "$MSG_FILE"; then
-  rm -f "$MSG_FILE.checked"
-  cat >&2 <<'EOF'
-
-  ────────────────────────────────────────────────────────────────
-  Commit bloqueado: a mensagem assina uma ferramenta como coautora.
-
-  Corrija removendo a linha "Co-authored-by: ..." da mensagem.
-  Se a coautoria for legítima (outra pessoa), adicione o padrão em
-  .github/identity-allowlist.txt e registre no PR.
-  ────────────────────────────────────────────────────────────────
-
-EOF
-  exit 1
-fi
-
-rm -f "$MSG_FILE.checked"
-exit 0
+exec "$PYTHON" "$GUARD" check-msg "$1"
